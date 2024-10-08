@@ -23,7 +23,13 @@
     <ClInclude Include="cpu8080.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cpu8080_compiler.h">
+    <ClInclude Include="cpu8080_assembler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu8080_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu8080_tables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -135,7 +135,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpu8080.h" />
-    <ClInclude Include="cpu8080_compiler.h" />
+    <ClInclude Include="cpu8080_assembler.h" />
+    <ClInclude Include="cpu8080_parser.h" />
+    <ClInclude Include="cpu8080_tables.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
