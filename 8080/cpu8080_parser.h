@@ -13,7 +13,7 @@ typedef struct {
 	short s; //size
 } program;
 
-char* getline(char** line, size_t* len, FILE* file) {
+char* fgetline(char** line, size_t* len, FILE* file) {
 	size_t count = 256;
 	if(*line == NULL) {
 		*line = malloc(count * sizeof(char));
@@ -21,7 +21,7 @@ char* getline(char** line, size_t* len, FILE* file) {
 		*line = realloc(*line, count * sizeof(char));
 	}
 	*len = 0;
-	while(fgets(*line + *len, count, file) != NULL) {
+	while(fgets(*line + *len, count - *len, file) != NULL) {
 		size_t size = strlen(*line + *len);
 		*len += size;
 		if((*line)[size - 1] == '\n') {
@@ -43,7 +43,7 @@ program parse(char* file_name) {
 	char* token;
 	char* line = NULL;
 	size_t len = 0;
-	while(getline(&line, &len, file) != NULL) {
+	while(fgetline(&line, &len, file) != NULL) {
 		token = strtok(line, " ,");
 
 	}
