@@ -42,7 +42,6 @@ unsigned short find_label_addr(string_view_t label) {
 }
 
 void print_char_bin(unsigned char c) {
-	printf("0b");
 	for(int i=7;i>=0;i--) {
 		putchar('0'+((c&(1<<i))>>i));
 	}
@@ -102,7 +101,7 @@ void write_token(assembler_t* a, opcode_token_t* token) {
 		if(tok_str_cmp(token->opcode, obt.name)) {
 			unsigned char opcode = obt.b_code;
 #ifdef DEBUG_PRINT
-			printf("opcode found: ");
+			printf("opcode found: 0b");
 			print_char_bin(opcode);
 			printf("\n");
 #endif
@@ -144,7 +143,7 @@ void write_token(assembler_t* a, opcode_token_t* token) {
 				}
 			}
 #ifdef DEBUG_PRINT
-			printf("opcode final: ");
+			printf("opcode final: 0b");
 			print_char_bin(opcode);
 			printf("\n");
 #endif
@@ -160,22 +159,28 @@ void write_token(assembler_t* a, opcode_token_t* token) {
 					arg_imm = find_label_addr(token->args.fst.sv);
 				}
 			}else if(arg_ep_cnt == 1) {
-				if(token->args.val_types & 1) {
+				if(token->args.val_types & 2) {
 					arg_imm = token->args.snd.imm;
 				}else {
 					arg_imm = find_label_addr(token->args.snd.sv);
 				}
 			}
+
 			if(op_fin_len == 1) {
 #ifdef DEBUG_PRINT
-				printf("arg1 found: %x ", arg_imm);
+				printf("imm arg found: 0x%X = 0b", arg_imm & 0xFF);
+				print_char_bin(arg_imm & 0xFF);
+				printf("\n");
 #endif
 				fputc((unsigned char)arg_imm, file);
 				a->curr_addr++;
 			}else if(op_fin_len == 2){
 #ifdef DEBUG_PRINT
-				printf("arg1 found: %x ", arg_imm >> 8);
-				printf("arg2 found: %x ", arg_imm & 0xFF);
+				printf("imm arg found: 0x%X = 0b", arg_imm);
+				print_char_bin((arg_imm & 0xFF00) >> 8);
+				printf(" 0b");
+				print_char_bin(arg_imm & 0xFF);
+				printf("\n");
 #endif
 				fputc((unsigned char)(arg_imm >> 8), file);
 				fputc((unsigned char)arg_imm, file);
@@ -202,9 +207,6 @@ void write_tokens(assembler_t* a) {
 #endif
 		write_token(a, tokens.tokens + i);
 	}
-#ifdef DEBUG_PRINT
-	printf("\n");
-#endif
 }
 
 void free_tokens_strings(assembler_t* a) {
@@ -236,15 +238,25 @@ typedef struct {
 
 program_t load_program(char* file_name_in) {
 	program_t program;
-	program.size = 0;
-
-
+	FILE* file;
+	fopen_s(&file, file_name_in, "r");
+	program.size = fread(program.data, sizeof(char), sizeof(program.data), file);
+	fclose(file);
 	return program;
 }
 
-void print_program(program_t* program) {
-	for(int i=0;i<program->size;i++) {
-		printf("0x%x", program->data[i]);
+void print_program(program_t* program, bool bin) {
+	printf("Loaded program of %d bytes:\n", program->size);
+	if(bin) {
+		for(int i=0;i<program->size;i++) {
+			printf("0b");
+			print_char_bin(program->data[i]);
+			printf(" ");
+		}
+	}else {
+		for(int i=0;i<program->size;i++) {
+			printf("0x%02hhX ", program->data[i]);
+		}
 	}
 	printf("\n");
 }

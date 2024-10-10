@@ -178,7 +178,7 @@ static char* get_opcode_args(char* line, struct args_t* args) {
 			}
 			arg->sv.len = line - arg->sv.str;
 #ifdef DEBUG_PRINT
-			printf("arg%d: \"", arg_c);
+			printf("arg%d: \"", arg_c+1);
 			sv_print(arg->sv);
 			printf("\" ");
 #endif
@@ -191,7 +191,7 @@ static char* get_opcode_args(char* line, struct args_t* args) {
 			args->val_types |= 1 << arg_c;
 			line = get_immediate(line, &arg->imm);
 #ifdef DEBUG_PRINT
-			printf("arg%d: \"", arg_c);
+			printf("arg%d: \"", arg_c+1);
 			printf("0x%x", arg->imm);
 			printf("\" ");
 #endif
@@ -265,10 +265,10 @@ static opcode_token_t next_token(char* line) {
 		assert(false, "Expected opcode arguments");
 		return gen_error_token();
 	}
-	if(is_rest_error(line)) {
-		assert(false, "Unexpected");
-		return gen_error_token();
-	}
+	//if(is_rest_error(line)) {
+	//	assert(false, "Unexpected");
+	//	return gen_error_token();
+	//}
 
 	return token;
 }
@@ -304,10 +304,14 @@ tokens_out_t parse_file(FILE* file) {
 		printf(" Args: fst: ");
 		if(tokens_out.tokens[i].args.fst.sv.len){
 			sv_print(tokens_out.tokens[i].args.fst.sv);
+		}else {
+			printf("0x%X", tokens_out.tokens[i].args.fst.imm);
 		}
 		printf(" snd: ");
 		if(tokens_out.tokens[i].args.snd.sv.len){
 			sv_print(tokens_out.tokens[i].args.snd.sv);
+		}else {
+			printf("0x%X", tokens_out.tokens[i].args.snd.imm);
 		}
 		printf("\n");
 	}

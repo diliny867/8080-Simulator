@@ -1,3 +1,5 @@
 MOV A, B
 NOP
 ADD C
+MVI H, 0x5A
+STA 0x17C2
