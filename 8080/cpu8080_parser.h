@@ -88,6 +88,7 @@ static char* get_label(char* line, char** label, char* label_len) {
 			}
 			if(*line == ':') {
 				*label_len = line - *label;
+				line++;
 #ifdef DEBUG_PRINT
 				printf("label: \"");
 				string_view_t dbg__sv = {*label, *label_len};
@@ -139,19 +140,12 @@ static char* get_immediate(char* line, unsigned short* imm) {
 		line++;
 	}
 	if(isdigit(*line)) {
-		//int base = 10;
-		//if(*line == '0') {
-		//	switch(*(line+1)) {
-		//	case 'x': // hex
-		//		base = 16;
-		//	case 'b': // binary
-		//		base = 2;
-		//	default: // octal
-		//		base = 8;
-		//	}
-		//}
 		*imm = (unsigned short)strtol(line, NULL, 0);
-		while(isdigit(*line)) {
+		line++;
+		if(*line == 'x' || *line == 'b') {
+			line++;
+		}
+		while(isxdigit(*line)) {
 			line++;
 		}
 		return line;
@@ -220,6 +214,7 @@ static char* get_opcode_args(char* line, struct args_t* args) {
 }
 
 static bool is_rest_error(char* line) {
+	printf("!%s!", line);
 	while(*line != '\0') {
 		while(isspace(*line)) {
 			line++;
@@ -265,10 +260,10 @@ static opcode_token_t next_token(char* line) {
 		assert(false, "Expected opcode arguments");
 		return gen_error_token();
 	}
-	//if(is_rest_error(line)) {
-	//	assert(false, "Unexpected");
-	//	return gen_error_token();
-	//}
+	if(is_rest_error(line)) {
+		assert(false, "Unexpected");
+		return gen_error_token();
+	}
 
 	return token;
 }
