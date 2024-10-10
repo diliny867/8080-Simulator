@@ -13,9 +13,9 @@ typedef struct {
 } label_t;
 
 static int label_count = 0;
-label_t labels[256];
+static label_t labels[256];
 
-bool sv_cmp(string_view_t sv1, string_view_t sv2) {
+static bool sv_cmp(string_view_t sv1, string_view_t sv2) {
 	if(sv1.len != sv2.len) {
 		return false;
 	}
@@ -27,12 +27,12 @@ bool sv_cmp(string_view_t sv1, string_view_t sv2) {
 	return true;
 }
 
-int add_label(string_view_t label, unsigned short addr) {
+static int add_label(string_view_t label, unsigned short addr) {
 	labels[label_count].label = label;
 	labels[label_count].addr = addr;
 	return label_count++;
 }
-unsigned short find_label_addr(string_view_t label) {
+static unsigned short find_label_addr(string_view_t label) {
 	for(int i=0;i<label_count;i++) {
 		if(sv_cmp(labels[i].label, label)) {
 			return labels[i].addr;
@@ -41,13 +41,13 @@ unsigned short find_label_addr(string_view_t label) {
 	return 0;
 }
 
-void print_char_bin(unsigned char c) {
+static void print_char_bin(unsigned char c) {
 	for(int i=7;i>=0;i--) {
 		putchar('0'+((c&(1<<i))>>i));
 	}
 }
 
-int clamp(int val, int min, int max) {
+static int clamp(int val, int min, int max) {
 	if(val < min) {
 		return min;
 	}
@@ -57,7 +57,7 @@ int clamp(int val, int min, int max) {
 	return val;
 }
 
-bool tok_str_cmp(string_view_t s1, char* s2) {
+static bool tok_str_cmp(string_view_t s1, char* s2) {
 	int i;
 	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
 		if(tolower(s1.str[i]) != tolower(s2[i])) {
@@ -67,11 +67,11 @@ bool tok_str_cmp(string_view_t s1, char* s2) {
 	return i == s1.len && s2[i] == '\0';
 }
 
-int c_bit_count(unsigned char c) {
+static int c_bit_count(unsigned char c) {
 	return (c & 1) + ((c & 2) >> 1) + ((c & 4) >> 2) + ((c & 8) >> 3) + ((c & 16) >> 4) + ((c & 32) >> 5) + ((c & 64) >> 6) + ((c & 128) >> 7);
 }
 
-int c_right_most_bit_at(unsigned char c) {
+static int c_right_most_bit_at(unsigned char c) {
 	for(int i = 0; i < 8; i++){
 		if(c & (1 << i)) {
 			return i;
@@ -87,7 +87,7 @@ typedef struct {
 	unsigned short curr_addr;
 } assembler_t;
 
-void write_token(assembler_t* a, opcode_token_t* token) {
+static void write_token(assembler_t* a, opcode_token_t* token) {
 	FILE* file = a->fout;
 	if(token->label.len != 0) {
 		add_label(token->label, a->curr_addr);
@@ -194,7 +194,7 @@ void write_token(assembler_t* a, opcode_token_t* token) {
 #endif
 }
 
-void write_tokens(assembler_t* a) {
+static void write_tokens(assembler_t* a) {
 	tokens_out_t tokens = a->tokens;
 #ifdef DEBUG_PRINT
 	printf("\n");
@@ -209,7 +209,7 @@ void write_tokens(assembler_t* a) {
 	}
 }
 
-void free_tokens_strings(assembler_t* a) {
+static void free_tokens_strings(assembler_t* a) {
 	for(int i =0; i<a->tokens.count; i++) {
 		free(a->tokens.tokens[i].label.str);
 	}
