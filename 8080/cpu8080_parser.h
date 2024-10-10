@@ -31,20 +31,30 @@ static char* fgetline(char** line, size_t* len, FILE* file) {
 }
 
 
-typedef struct {
-	bool is_imm;
-	short value;
-} opcode_arg_token_t;
+//typedef struct {
+//	bool is_imm;
+//	char* value;
+//} opcode_arg_token_t;
 
 typedef struct{
 	char* ptr;
 	char* label;
-	struct args_u{
-		opcode_arg_token_t fst;
-		opcode_arg_token_t snd;
+	struct args_t{
+		union arg_v {
+			struct {
+				char* str;
+				unsigned char len;
+			} reg;
+			unsigned short imm;
+		};
+		union arg_v fst;
+		union arg_v snd;
+		unsigned char val_types; // 1 is imm
+		//opcode_arg_token_t fst;
+		//opcode_arg_token_t snd;
 	} args;
-	char len; // after for better space alignment
-	char label_len; // after for better space alignment
+	unsigned char len; // after for better space alignment
+	unsigned char label_len; // after for better space alignment
 } opcode_token_t;
 
 static char* get_label(char* line, char** label, char* label_len) {
@@ -89,7 +99,7 @@ static char* get_opcode(char* line, char** op_ptr, char* op_len) {
 	return NULL;
 }
 
-static char* get_immediate(char* line, short* imm) {
+static char* get_immediate(char* line, unsigned short* imm) {
 	while(isspace(*line)) {
 		line++;
 	}
@@ -105,7 +115,7 @@ static char* get_immediate(char* line, short* imm) {
 		//		base = 8;
 		//	}
 		//}
-		*imm = (short)strtol(line, NULL, 0);
+		*imm = (unsigned short)strtol(line, NULL, 0);
 		while(isdigit(*line)) {
 			line++;
 		}
@@ -114,33 +124,32 @@ static char* get_immediate(char* line, short* imm) {
 	return NULL;
 }
 
-static char* get_opcode_args(char* line, struct args_u* args) {
-	opcode_arg_token_t* arg = &args->fst;
+static char* get_opcode_args(char* line, struct args_t* args) {
+	union arg_v* arg = &args->fst;
+	int arg_c = 0;
 	int cc = 0;
 	while(*line != '\0') {
 		if(isalpha(*line)){
-			arg->is_imm = false;
-			char* arg_s = line;
-			while(isalpha(*line)){
-				if(line - arg_s > 1) {
-					return NULL;
-				}
-				arg->value |= (*line) << (line - arg_s) * 8;
+			arg->reg.str = line;
+			while(isalnum(*line)){
 				line++;
 			}
-			if(arg == & args->snd) {
+			arg->reg.len = line - arg->reg.str;
+			if(arg_c >= 1) {
 				return line;
 			}
+			arg_c++;
 			arg = &args->snd;
 		}else if(isdigit(*line)){
-			arg->is_imm = true;
-			line = get_immediate(line, &arg->value);
+			args->val_types |= 1 << arg_c;
+			line = get_immediate(line, &arg->imm);
 			if(!line) {
 				return NULL;
 			}
-			if(arg == & args->snd) {
+			if(arg_c >= 1) {
 				return line;
 			}
+			arg_c++;
 			arg = &args->snd;
 		}else if(*line == ',' || isspace(*line)) {
 			if(cc == 0 && arg != &args->snd) {

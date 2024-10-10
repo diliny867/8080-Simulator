@@ -12,12 +12,45 @@
 #define F_BITS (0x02)
 
 typedef struct {
-	char* name;
-	char b_code; // binary code
-	char ep_mask; // endpoints mask
-} opcode_base_t;
+	char arg[3];
+	char bits;
+} arg_dbl_bits_t;
+arg_dbl_bits_t arg_dbl_bits[4]{
+	{"BC", 0b00},
+	{"DE", 0b01},
+	{"HL", 0b10},
+	{"SP", 0b11}
+};
 
-opcode_base_t opcodes_lb[57]{
+typedef struct {
+	char arg[3];
+	char bits;
+} arg_tpl_t;
+arg_tpl_t arg_tpl_bits[16]{
+	{"A", 0b111},
+	{"B", 0b000},
+	{"C", 0b001},
+	{"D", 0b010},
+	{"E", 0b011},
+	{"H", 0b100},
+	{"L", 0b101},
+	{"M", 0b110},
+	{"NZ", 0b000},
+	{"Z", 0b001},
+	{"NC", 0b010},
+	{"C", 0b011},
+	{"PO", 0b100},
+	{"PE", 0b101},
+	{"P", 0b110},
+	{"M", 0b111},
+};
+
+typedef struct {
+	char* name;
+	unsigned char b_code; // binary code
+	unsigned char ep_mask; // endpoints mask
+} opcode_base_t;
+opcode_base_t opcodes_b[57]{
 	{"MOV", 0b01000000, 0b00111111},
 	{"MVI", 0b00000110, 0b00111000},
 	{"LXI", 0b00000001, 0b00110000},
@@ -339,11 +372,10 @@ char* opcodes_o_n[256]{
 };
 
 typedef struct {
-	char len;
-	char dur;
-	char flgs;
+	unsigned char len;
+	unsigned char dur;
+	unsigned char flgs;
 } opcode_data_t;
-
 opcode_data_t opcodes_o_d[256]{
 	{1, 4, 0},
 	{3, 10, 0},
@@ -606,7 +638,7 @@ opcode_data_t opcodes_o_d[256]{
 
 typedef struct {
 	char* name;
-	char code;
+	unsigned char code;
 } item;
 
 item opcodes_rev[256]{
