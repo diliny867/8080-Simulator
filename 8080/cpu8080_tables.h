@@ -15,7 +15,7 @@ typedef struct {
 	char arg[3];
 	char bits;
 } arg_dbl_bits_t;
-arg_dbl_bits_t arg_dbl_bits[4]{
+arg_dbl_bits_t arg_dbl_bits[4] = {
 	{"BC", 0b00},
 	{"DE", 0b01},
 	{"HL", 0b10},
@@ -26,7 +26,7 @@ typedef struct {
 	char arg[3];
 	char bits;
 } arg_tpl_t;
-arg_tpl_t arg_tpl_bits[16]{
+arg_tpl_t arg_tpl_bits[16] = {
 	{"A", 0b111},
 	{"B", 0b000},
 	{"C", 0b001},
@@ -50,7 +50,7 @@ typedef struct {
 	unsigned char b_code; // binary code
 	unsigned char ep_mask; // endpoints mask
 } opcode_base_t;
-opcode_base_t opcodes_b[57]{
+opcode_base_t opcodes_b[57] = {
 	{"MOV", 0b01000000, 0b00111111},
 	{"MVI", 0b00000110, 0b00111000},
 	{"LXI", 0b00000001, 0b00110000},
@@ -58,30 +58,30 @@ opcode_base_t opcodes_b[57]{
 	{"STA", 0b00110010, 0b0},
 	{"LHLD",0b00101010, 0b0},
 	{"SHLD",0b00100010, 0b0},
-	{"LDAX",0b00111010, 0b00110000},
-	{"STAX",0b00110010, 0b00110000},
+	{"LDAX",0b00001010, 0b00110000},
+	{"STAX",0b00000010, 0b00110000},
 	{"XCHG",0b11101011, 0b0},
-	{"ADD", 0b10000111, 0b00000111},
+	{"ADD", 0b10000000, 0b00000111},
 	{"ADI", 0b11000110, 0b0},
-	{"ADC", 0b10001111, 0b00000111},
+	{"ADC", 0b10001000, 0b00000111},
 	{"ACI", 0b11001110, 0b0},
-	{"SUB", 0b10010111, 0b00000111},
+	{"SUB", 0b10010000, 0b00000111},
 	{"SUI", 0b11010110, 0b0},
-	{"SBB", 0b10011111, 0b00000111},
+	{"SBB", 0b10011000, 0b00000111},
 	{"SBI", 0b11011110, 0b0},
-	{"INR", 0b00111100, 0b00111000},
-	{"DCR", 0b00111101, 0b00111000},
-	{"INX", 0b00110011, 0b00110000},
-	{"DCX", 0b00111011, 0b00110000},
-	{"DAD", 0b00111001, 0b00110000},
+	{"INR", 0b00000100, 0b00111000},
+	{"DCR", 0b00000101, 0b00111000},
+	{"INX", 0b00000011, 0b00110000},
+	{"DCX", 0b00001011, 0b00110000},
+	{"DAD", 0b00001001, 0b00110000},
 	{"DAA", 0b00100111, 0b0},
-	{"ANA", 0b10100111, 0b00000111},
+	{"ANA", 0b10100000, 0b00000111},
 	{"ANI", 0b11100110, 0b0},
-	{"ORA", 0b10110111, 0b00000111},
+	{"ORA", 0b10110000, 0b00000111},
 	{"ORI", 0b11110110, 0b0},
-	{"XRA", 0b10101111, 0b00000111},
+	{"XRA", 0b10101000, 0b00000111},
 	{"XRI", 0b11101110, 0b0},
-	{"CMP", 0b10111111, 0b00000111},
+	{"CMP", 0b10111000, 0b00000111},
 	{"CPI", 0b11111110, 0b0},
 	{"RLC", 0b00000111, 0b0},
 	{"RRC", 0b00001111, 0b0},
@@ -91,15 +91,15 @@ opcode_base_t opcodes_b[57]{
 	{"CMC", 0b00111111, 0b0},
 	{"STC", 0b00110111, 0b0},
 	{"JMP", 0b11000011, 0b0},
-	{"JC",  0b11111010, 0b00111000},
+	{"JC",  0b11000010, 0b00111000},
 	{"CALL",0b11001101, 0b0},
-	{"CC",  0b11111100, 0b00111000},
+	{"CC",  0b11000100, 0b00111000},
 	{"RET", 0b11001001, 0b0},
-	{"RC",  0b11111000, 0b00111000},
-	{"RST", 0b11111111, 0b00111000},
+	{"RC",  0b11000000, 0b00111000},
+	{"RST", 0b11000111, 0b00111000},
 	{"PCHL",0b11101001, 0b0},
-	{"PUSH",0b11110101, 0b00110000},
-	{"POP", 0b11110001, 0b00110000},
+	{"PUSH",0b11000101, 0b00110000},
+	{"POP", 0b11000001, 0b00110000},
 	{"XTHL",0b11100011, 0b0},
 	{"SPHL",0b11111001, 0b0},
 	{"IN",  0b11011011, 0b0},
@@ -112,7 +112,7 @@ opcode_base_t opcodes_b[57]{
 
 
 // opcodes_o_* are ordered by opcode binary values
-char* opcodes_o_n[256]{
+char* opcodes_o_n[256] = {
 	{"NOP"},
 	{"LXI"},
 	{"STAX"},
@@ -376,7 +376,7 @@ typedef struct {
 	unsigned char dur;
 	unsigned char flgs;
 } opcode_data_t;
-opcode_data_t opcodes_o_d[256]{
+opcode_data_t opcodes_o_d[256] = {
 	{1, 4, 0},
 	{3, 10, 0},
 	{1, 7, 0},
@@ -641,7 +641,7 @@ typedef struct {
 	unsigned char code;
 } item;
 
-item opcodes_rev[256]{
+item opcodes_rev[256] = {
 	{"NOP", 0x00},
 	{"NOP", 0x10},
 	{"NOP", 0x20},

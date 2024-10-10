@@ -7,6 +7,47 @@
 
 //#define AS_ASCII
 
+typedef struct {
+	string_view_t label;
+	unsigned short addr;
+} label_t;
+
+static int label_count = 0;
+label_t labels[256];
+
+bool sv_cmp(string_view_t sv1, string_view_t sv2) {
+	if(sv1.len != sv2.len) {
+		return false;
+	}
+	for(int i=0;i<sv1.len;i++) {
+		if(sv1.str[i] != sv2.str[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+int add_label(string_view_t label, unsigned short addr) {
+	labels[label_count].label = label;
+	labels[label_count].addr = addr;
+	return label_count++;
+}
+unsigned short find_label_addr(string_view_t label) {
+	for(int i=0;i<label_count;i++) {
+		if(sv_cmp(labels[i].label, label)) {
+			return labels[i].addr;
+		}
+	}
+	return 0;
+}
+
+void print_char_bin(unsigned char c) {
+	printf("0b");
+	for(int i=7;i>=0;i--) {
+		putchar('0'+((c&(1<<i))>>i));
+	}
+}
+
 int clamp(int val, int min, int max) {
 	if(val < min) {
 		return min;
@@ -17,14 +58,14 @@ int clamp(int val, int min, int max) {
 	return val;
 }
 
-bool tok_str_cmp(char* s1, int len, char* s2) {
+bool tok_str_cmp(string_view_t s1, char* s2) {
 	int i;
-	for(i = 0; i < len && s2[i] != '\0'; i++) {
-		if(tolower(s1[i]) != tolower(s2[i])) {
+	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
+		if(tolower(s1.str[i]) != tolower(s2[i])) {
 			return false;
 		}
 	}
-	return i == len && s2[i] == '\0';
+	return i == s1.len && s2[i] == '\0';
 }
 
 int c_bit_count(unsigned char c) {
@@ -40,36 +81,48 @@ int c_right_most_bit_at(unsigned char c) {
 	return 0;
 }
 
-void write_token(FILE* file, opcode_token_t* token) {
-	unsigned char opcode = 0;
+typedef struct {
+	FILE* fout;
+	FILE* fin;
+	tokens_out_t tokens;
+	unsigned short curr_addr;
+} assembler_t;
+
+void write_token(assembler_t* a, opcode_token_t* token) {
+	FILE* file = a->fout;
+	if(token->label.len != 0) {
+		add_label(token->label, a->curr_addr);
+	}
 	int b_size = sizeof(opcodes_b)/sizeof(opcodes_b[0]);
+	if(token->opcode.len == 0) {
+		return;
+	}
 	for(int i=0;i<b_size;i++) {
 		opcode_base_t obt = opcodes_b[i];
-		if(tok_str_cmp(token->ptr, token->len, obt.name)) {
-			opcode = obt.b_code;
+		if(tok_str_cmp(token->opcode, obt.name)) {
+			unsigned char opcode = obt.b_code;
+#ifdef DEBUG_PRINT
+			printf("opcode found: ");
+			print_char_bin(opcode);
+			printf("\n");
+#endif
 			int arg_bit_count = c_bit_count(obt.ep_mask);
 			int arg_at = c_right_most_bit_at(obt.ep_mask);
 			if(arg_bit_count == 2) {
-				if(token->args.val_types & 1) {
-
-
-				} else{
+				if(!(token->args.val_types & 1)) {
 					int t_size = sizeof(arg_dbl_bits)/sizeof(arg_dbl_bits[0]);
 					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.fst.reg.str, token->args.fst.reg.len, arg_dbl_bits[j].arg)) {
+						if(tok_str_cmp(token->args.fst.sv, arg_dbl_bits[j].arg)) {
 							opcode |= arg_dbl_bits[j].bits << arg_at;
 							break;
 						}
 					}
 				}
 			} else if(arg_bit_count == 3) {
-				if(token->args.val_types & 1) {
-
-
-				} else{
+				if(!(token->args.val_types & 1)) {
 					int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
 					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.fst.reg.str, token->args.fst.reg.len, arg_dbl_bits[j].arg)) {
+						if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)) {
 							opcode |= arg_tpl_bits[j].bits << arg_at;
 							break;
 						}
@@ -77,43 +130,121 @@ void write_token(FILE* file, opcode_token_t* token) {
 				}
 			} else if(arg_bit_count == 6) {
 				int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
+				for(int j=0; j<t_size; j++) {
+					if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)){
+						opcode |= arg_tpl_bits[j].bits << arg_at;
+						break;
+					}
+				}
+				for(int j=0; j<t_size; j++) {
+					if(tok_str_cmp(token->args.snd.sv, arg_tpl_bits[j].arg)) {
+						opcode |= arg_tpl_bits[j].bits << (arg_at+3);
+						break;
+					}
+				}
+			}
+#ifdef DEBUG_PRINT
+			printf("opcode final: ");
+			print_char_bin(opcode);
+			printf("\n");
+#endif
+			fputc(opcode, file);
+			a->curr_addr++;
+			int arg_ep_cnt = clamp(arg_bit_count/2, 0, 2);
+			int op_fin_len = opcodes_o_d[opcode].len - 1;
+			unsigned short arg_imm = 0;
+			if(arg_ep_cnt == 0) {
 				if(token->args.val_types & 1) {
-
-					
-				} else{
-					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.fst.reg.str, token->args.fst.reg.len, arg_dbl_bits[j].arg)) {
-							opcode |= arg_tpl_bits[j].bits << arg_at;
-							break;
-						}
-					}
+					arg_imm = token->args.fst.imm;
+				}else {
+					arg_imm = find_label_addr(token->args.fst.sv);
 				}
-				if(token->args.val_types & 2) {
-
-					
-				} else{
-					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.snd.reg.str, token->args.snd.reg.len, arg_dbl_bits[j].arg)) {
-							opcode |= arg_tpl_bits[j].bits << (arg_at+3);
-							break;
-						}
-					}
+			}else if(arg_ep_cnt == 1) {
+				if(token->args.val_types & 1) {
+					arg_imm = token->args.snd.imm;
+				}else {
+					arg_imm = find_label_addr(token->args.snd.sv);
 				}
+			}
+			if(op_fin_len == 1) {
+#ifdef DEBUG_PRINT
+				printf("arg1 found: %x ", arg_imm);
+#endif
+				fputc((unsigned char)arg_imm, file);
+				a->curr_addr++;
+			}else if(op_fin_len == 2){
+#ifdef DEBUG_PRINT
+				printf("arg1 found: %x ", arg_imm >> 8);
+				printf("arg2 found: %x ", arg_imm & 0xFF);
+#endif
+				fputc((unsigned char)(arg_imm >> 8), file);
+				fputc((unsigned char)arg_imm, file);
+				a->curr_addr+=2;
 			}
 			break;
 		}
 	}
-	fputc(opcode, file);
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+}
+
+void write_tokens(assembler_t* a) {
+	tokens_out_t tokens = a->tokens;
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+	for(int i = 0; i < tokens.count; i++) {
+#ifdef DEBUG_PRINT
+		printf("Writing token%d: ", i);
+		sv_print(tokens.tokens[i].opcode);
+		printf("\n");
+#endif
+		write_token(a, tokens.tokens + i);
+	}
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+}
+
+void free_tokens_strings(assembler_t* a) {
+	for(int i =0; i<a->tokens.count; i++) {
+		free(a->tokens.tokens[i].label.str);
+	}
 }
 
 void assemble(char* file_name_in, char* file_name_out) {
-	FILE* fin = fopen(file_name_in, "r");
-	FILE* fout = fopen(file_name_out, "w");
+	assembler_t a;
+	a.curr_addr = 0;
+	fopen_s(&a.fin, file_name_in, "r");
+	fopen_s(&a.fout, file_name_out, "w");
 
-	tokens_out_t tokens = parse_file(fin);
+	a.tokens = parse_file(a.fin);
+
+	write_tokens(&a);
+
+	free_tokens_strings(&a);
+
+	fclose(a.fout);
+	fclose(a.fin);
+}
+
+typedef struct {
+	char data[65536];
+	unsigned short size;
+} program_t;
+
+program_t load_program(char* file_name_in) {
+	program_t program;
+	program.size = 0;
 
 
+	return program;
+}
 
-	fclose(fout);
-	fclose(fin);
+void print_program(program_t* program) {
+	for(int i=0;i<program->size;i++) {
+		printf("0x%x", program->data[i]);
+	}
+	printf("\n");
 }

@@ -1,0 +1,3 @@
+MOV A, B
+NOP
+ADD C
