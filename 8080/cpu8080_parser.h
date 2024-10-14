@@ -9,7 +9,7 @@
 #include "stdbool.h"
 
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 
 static char* fgetline(char** line, size_t* len, FILE* file) {
@@ -214,7 +214,6 @@ static char* get_opcode_args(char* line, struct args_t* args) {
 }
 
 static bool is_rest_error(char* line) {
-	printf("!%s!", line);
 	while(*line != '\0') {
 		while(isspace(*line)) {
 			line++;
@@ -229,7 +228,7 @@ static bool is_rest_error(char* line) {
 }
 
 static opcode_token_t gen_error_token() {
-	opcode_token_t tok = {{NULL, 0}, {NULL, 0}, {{0,0},{0,0}, 0}};
+	opcode_token_t tok = {{NULL, 0}, {NULL, 0}, {{NULL,0},{NULL,0}, 0}};
 	return tok;
 }
 
@@ -241,7 +240,7 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		assert(false, "Expected label or opcode");
+		printf("Expected label or opcode");
 		return gen_error_token();
 	}
 	line = get_opcode(line, &token.opcode.str, &token.opcode.len);
@@ -249,7 +248,7 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		assert(false, "Expected opcode");
+		printf("Expected opcode");
 		return gen_error_token();
 	}
 	line = get_opcode_args(line, &token.args);
@@ -257,11 +256,11 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		assert(false, "Expected opcode arguments");
+		printf("Expected opcode arguments");
 		return gen_error_token();
 	}
 	if(is_rest_error(line)) {
-		assert(false, "Unexpected");
+		printf("Unexpected");
 		return gen_error_token();
 	}
 
