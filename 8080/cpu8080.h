@@ -115,16 +115,16 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 	case 0x00: case 0x10: case 0x20: case 0x30: case 0x08: case 0x18: case 0x28: case 0x38: //NOP
 		break;
 	case 0x01: //LXI B,d16
-
+        reg_BC = cpu8080_next_short();
 		break;
 	case 0x11: //LXI D,d16:
-
+        reg_DE = cpu8080_next_short();
 		break;
 	case 0x21: //LXI H,d16
-
+        reg_HL = cpu8080_next_short();
 		break;
 	case 0x31: //LXI SP,d16
-
+        reg_SP = cpu8080_next_short();
 		break;
 	case 0x02: //STAX B
 
@@ -151,28 +151,28 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
 		break;
 	case 0x04: //INR B
-
+        reg_B++;
 		break;
 	case 0x14: //INR D
-
+        reg_D++;
 		break;
 	case 0x24: //INR H
-
+        reg_H++;
 		break;
 	case 0x34: //INR M
-
+        reg_M++;
 		break;
 	case 0x05: //DCR B
-
+        reg_B--;
 		break;
 	case 0x15: //DCR D
-
+        reg_D--;
 		break;
 	case 0x25: //DCR H
-
+        reg_H--;
 		break;
 	case 0x35: //DCR M
-
+        reg_M--;
 		break;
 	case 0x06: //MVI B,d8
 
@@ -235,28 +235,28 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
 		break;
 	case 0x0C: //INR C
-
+        reg_C++;
 		break;
 	case 0x1C: //INR E
-
+        reg_E++;
 		break;
 	case 0x2C: //INR L
-
+        reg_L++;
 		break;
 	case 0x3C: //INR A
-
+        reg_A++;
 		break;
 	case 0x0D: //DCR C
-
+        reg_C--;
 		break;
 	case 0x1D: //DCR E
-
+        reg_E--;
 		break;
 	case 0x2D: //DCR L
-
+        reg_L--;
 		break;
 	case 0x3D: //DCR A
-
+        reg_A--;
 		break;
 	case 0x0E: //MVI C,d8
 
@@ -283,202 +283,202 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
 		break;
     case 0x40: //MOV B,B
-
+        reg_B = reg_B;
         break;
     case 0x50: //MOV D,B
-
+        reg_D = reg_B;
         break;
     case 0x60: //MOV H,B
-
+        reg_H = reg_B;
         break;
     case 0x70: //MOV M,B
-
+        reg_M = reg_B;
         break;
     case 0x41: //MOV B,C
-
+        reg_B = reg_C;
         break;
     case 0x51: //MOV D,C
-
+        reg_D = reg_C;
         break;
     case 0x61: //MOV H,C
-
+        reg_H = reg_C;
         break;
     case 0x71: //MOV M,C
-
+        reg_M = reg_C;
         break;
     case 0x42: //MOV B,D
-
+        reg_B = reg_D;
         break;
     case 0x52: //MOV D,D
-
+        reg_D = reg_D;
         break;
     case 0x62: //MOV H,D
-
+        reg_H = reg_D;
         break;
     case 0x72: //MOV M,D
-
+        reg_M = reg_D;
         break;
     case 0x43: //MOV B,E
-
+        reg_B = reg_E;
         break;
     case 0x53: //MOV D,E
-
+        reg_D = reg_E;
         break;
     case 0x63: //MOV H,E
-
+        reg_H = reg_E;
         break;
     case 0x73: //MOV M,E
-
+        reg_M = reg_E;
         break;
     case 0x44: //MOV B,H
-
+        reg_B = reg_H;
         break;
     case 0x54: //MOV D,H
-
+        reg_D = reg_H;
         break;
     case 0x64: //MOV H,H
-
+        reg_H = reg_H;
         break;
     case 0x74: //MOV M,H
-
+        reg_M = reg_H;
         break;
     case 0x45: //MOV B,L
-
+        reg_B= reg_L;
         break;
     case 0x55: //MOV D,L
-
+        reg_D = reg_L;
         break;
     case 0x65: //MOV H,L
-
+        reg_H = reg_L;
         break;
     case 0x75: //MOV M,L
-
+        reg_M = reg_L;
         break;
     case 0x46: //MOV B,M
-
+        reg_B = reg_M;
         break;
     case 0x56: //MOV D,M
-
+        reg_D = reg_M;
         break;
     case 0x66: //MOV H,M
-
+        reg_H = reg_M;
         break;
     case 0x76: //HLT
         halt = true;
         break;
     case 0x47: //MOV B,A
-
+        reg_B = reg_A;
         break;
     case 0x57: //MOV D,A
-
+        reg_D = reg_A;
         break;
     case 0x67: //MOV H,A
-
+        reg_ = reg_A;
         break;
     case 0x77: //MOV M,A
-
+        reg_M = reg_A;
         break;
     case 0x48: //MOV C,B
-
+        reg_C = reg_B;
         break;
     case 0x58: //MOV E,B
-
+        reg_E = reg_B;
         break;
     case 0x68: //MOV L,B
-
+        reg_L = reg_B;
         break;
     case 0x78: //MOV A,B
-
+        reg_A = reg_B;
         break;
     case 0x49: //MOV C,C
-
+        reg_C = reg_C;
         break;
     case 0x59: //MOV E,C
-
+        reg_E = reg_C;
         break;
     case 0x69: //MOV L,C
-
+        reg_L = reg_C;
         break;
     case 0x79: //MOV A,C
-
+        reg_A = reg_C;
         break;
     case 0x4A: //MOV C,D
-
+        reg_C = reg_D;
         break;
     case 0x5A: //MOV E,D
-
+        reg_E = reg_D;
         break;
     case 0x6A: //MOV L,D
-
+        reg_L = reg_D;
         break;
     case 0x7A: //MOV A,D
-
+        reg_A = reg_D;
         break;
     case 0x4B: //MOV C,E
-
+        reg_C = reg_E;
         break;
     case 0x5B: //MOV E,E
-
+        reg_E = reg_E;
         break;
     case 0x6B: //MOV L,E
-
+        reg_L = reg_E;
         break;
     case 0x7B: //MOV A,E
-
+        reg_A = reg_E;
         break;
     case 0x4C: //MOV C,H
-
+        reg_C = reg_H;
         break;
     case 0x5C: //MOV E,H
-
+        reg_E = reg_H;
         break;
     case 0x6C: //MOV L,H
-
+        reg_L = reg_H;
         break;
     case 0x7C: //MOV A,H
-
+        reg_A = reg_H;
         break;
     case 0x4D: //MOV C,L
-
+        reg_C = reg_L;
         break;
     case 0x5D: //MOV E,L
-
+        reg_E = reg_L;
         break;
     case 0x6D: //MOV L,L
-
+        reg_L = reg_L;
         break;
     case 0x7D: //MOV A,L
-
+        reg_A = reg_L;
         break;
     case 0x4E: //MOV C,M
-
+        reg_C = reg_M;
         break;
     case 0x5E: //MOV E,M
-
+        reg_E = reg_M;
         break;
     case 0x6E: //MOV L,M
-
+        reg_L = reg_M;
         break;
     case 0x7E: //MOV A,M
-
+        reg_A = reg_M;
         break;
     case 0x4F: //MOV C,A
-
+        reg_C = reg_A;
         break;
     case 0x5F: //MOV E,A
-
+        reg_E = reg_A;
         break;
     case 0x6F: //MOV L,A
-
+        reg_L = reg_A;
         break;
     case 0x7F: //MOV A,A
-
+        reg_A = reg_A;
         break;
     case 0x80: //ADD B
-
+        reg_A += reg_B;
         break;
     case 0x90: //SUB B
-
+        reg_A -= reg_B;
         break;
     case 0xA0: //ANA B
 
@@ -487,10 +487,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x81: //ADD C
-
+        reg_A += reg_C;
         break;
     case 0x91: //SUB C
-
+        reg_A -= reg_C;
         break;
     case 0xA1: //ANA C
 
@@ -499,10 +499,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x82: //ADD D
-
+        reg_A += reg_D;
         break;
     case 0x92: //SUB D
-
+        reg_A -= reg_D;
         break;
     case 0xA2: //ANA D
 
@@ -511,10 +511,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x83: //ADD E
-
+        reg_A += reg_E;
         break;
     case 0x93: //SUB E
-
+        reg_A -= reg_E;
         break;
     case 0xA3: //ANA E
 
@@ -523,10 +523,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x84: //ADD H
-
+        reg_A += reg_H;
         break;
     case 0x94: //SUB H
-
+        reg_A -= reg_H;
         break;
     case 0xA4: //ANA H
 
@@ -535,10 +535,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x85: //ADD L
-
+        reg_A += reg_L;
         break;
     case 0x95: //SUB L
-
+        reg_A -= reg_L;
         break;
     case 0xA5: //ANA L
 
@@ -547,10 +547,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x86: //ADD M
-
+        reg_A += reg_M;
         break;
     case 0x96: //SUB M
-
+        reg_A -= reg_M;
         break;
     case 0xA6: //ANA M
 
@@ -559,10 +559,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0x87: //ADD A
-
+        reg_A += reg_A;
         break;
     case 0x97: //SUB A
-
+        reg_A -= reg_B;
         break;
     case 0xA7: //ANA A
 
