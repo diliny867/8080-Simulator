@@ -134,6 +134,7 @@
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cpu8080_common.h" />
     <ClInclude Include="cpu8080_emulator.h" />
     <ClInclude Include="cpu8080_assembler.h" />
     <ClInclude Include="cpu8080_disassembler.h" />

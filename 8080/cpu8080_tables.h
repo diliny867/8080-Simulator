@@ -17,7 +17,6 @@
 // initial value for flag register
 #define F_BITS (0x02)
 
-#define DATA_MAX_CNT 65536
 
 typedef struct {
 	char arg[3];

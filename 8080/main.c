@@ -18,5 +18,7 @@ int main(int argc, char** argv) {
 
 	print_disassemble(pr.data);
 
+	cpu8080_run_program(&pr);
+
 	return 0;
 }

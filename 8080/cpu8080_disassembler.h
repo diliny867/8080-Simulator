@@ -1,18 +1,7 @@
 #pragma once
 
 #include "cpu8080_tables.h"
-#include "cpu8080_emulator.h"
 
-
-void print_reg(char* name, cpu8080_short_t v) {
-	printf("Register %s: 0x%02hhX %02hhX\n", name, v >> 8, v & 0xFF);
-}
-
-void print_flags(cpu8080_reg_flags_t flags) {
-	printf("Flags (F register): \n");
-	printf("S Z A P C\n");
-	printf("%d %d %d %d %d\n", flags.S, flags.Z, flags.A, flags.P, flags.C);
-}
 
 void print_opcode_name(char* opcode) {
 	while(true) {
@@ -73,15 +62,15 @@ void print_disassemble(cpu8080_byte_t* data) {
 }
 
 void print_disassemble_from_ram(cpu8080_byte_t* ram, cpu8080_short_t AF, cpu8080_short_t BD, cpu8080_short_t DE, cpu8080_short_t HL, cpu8080_short_t SP, cpu8080_short_t PC) {
-	print_reg("AF", AF);
-	print_reg("BD", BD);
-	print_reg("DE", DE);
-	print_reg("HL", HL);
-	print_reg("SP", SP);
-	print_reg("PC", PC);
-	printf("\n");
-
-	print_flags(*(cpu8080_reg_flags_t*)&AF);
+	//print_reg("AF", AF);
+	//print_reg("BD", BD);
+	//print_reg("DE", DE);
+	//print_reg("HL", HL);
+	//print_reg("SP", SP);
+	//print_reg("PC", PC);
+	//printf("\n");
+	//
+	//print_flags(*(cpu8080_reg_flags_t*)&AF);
 
 	print_disassemble(ram);
 }

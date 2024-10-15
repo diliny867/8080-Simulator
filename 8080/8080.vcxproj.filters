@@ -35,5 +35,8 @@
     <ClInclude Include="cpu8080_disassembler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cpu8080_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

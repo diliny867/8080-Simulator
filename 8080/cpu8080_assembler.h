@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include "cpu8080_common.h"
 #include "cpu8080_parser.h"
 #include "cpu8080_tables.h"
 
@@ -243,6 +244,7 @@ program_t load_program(char* file_name_in) {
 	fopen_s(&file, file_name_in, "r");
 	program.size = fread(program.data, sizeof(char), sizeof(program.data), file);
 	memset(program.data + program.size, 0, DATA_MAX_CNT - program.size);
+	program.start = 0;
 	fclose(file);
 	return program;
 }
