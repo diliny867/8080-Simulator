@@ -30,7 +30,6 @@
 
 typedef int8_t cpu8080_byte_t;
 typedef int16_t cpu8080_short_t;
-typedef cpu8080_short_t cpu8080_ptr_t;
 typedef bool cpu8080_bool_t;
 
 typedef union {
@@ -139,10 +138,10 @@ cpu8080_short_t cpu8080_next_short(void) {
 	return (cpu8080_next_byte() << 8) | cpu8080_next_byte();
 }
 
-void cpu8080_write_byte(cpu8080_ptr_t addr, cpu8080_byte_t v) {
+void cpu8080_write_byte(cpu8080_short_t addr, cpu8080_byte_t v) {
     ram[addr] = v;
 }
-void cpu8080_write_short(cpu8080_ptr_t addr, cpu8080_short_t v) {
+void cpu8080_write_short(cpu8080_short_t addr, cpu8080_short_t v) {
     ram[addr] = v & 0xFF;
     ram[addr+1] = (v >> 8) & 0xFF;
 }
@@ -238,6 +237,31 @@ void cpu8080_CMP(cpu8080_byte_t v) {
     if(reg_Flags.S) {
         reg_Flags.C = !reg_Flags.C;
     }
+}
+
+void cpu8080_PUSH(cpu8080_short_t v) {
+    ram[reg_SP - 1] = v >> 8;
+    ram[reg_SP - 2] = v & 0xFF;
+    reg_SP -= 2;
+}
+void cpu8080_POP(cpu8080_short_t* dest) {
+    *dest = (cpu8080_short_t)ram[reg_SP + 0] | ((cpu8080_short_t)ram[reg_SP + 1] << 8);
+    reg_SP += 2;
+}
+void cpu8080_XTHL(void) {
+    cpu8080_short_t tmp = reg_HL;
+    reg_L = ram[reg_SP];
+	reg_H = ram[reg_SP + 1];
+    ram[reg_SP - 1] = tmp >> 8;
+    ram[reg_SP - 2] = tmp & 0xFF;
+}
+void cpu8080_LHLD(cpu8080_short_t addr) {
+    reg_L = ram[addr];
+    reg_H = ram[addr + 1];
+}
+
+void cpu8080_JMP(cpu8080_short_t addr) {
+    reg_PC = addr;
 }
 
 
@@ -349,7 +373,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         reg_A = ram[reg_DE];
 		break;
 	case 0x2A: //LHLD a16
-        reg_HL = ram[cpu8080_next_short()];
+        cpu8080_LHLD(cpu8080_next_short());
 		break;
 	case 0x3A: //LDA a16
         reg_A = ram[cpu8080_next_short()];
@@ -496,6 +520,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         reg_H = reg_M;
         break;
     case 0x76: //HLT
+        reg_PC++;
         halt = true;
         break;
     case 0x47: //MOV B,A
@@ -811,37 +836,45 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0xC1: //POP B
-
+        cpu8080_POP(&reg_BC);
         break;
     case 0xD1: //POP D
-
+        cpu8080_POP(&reg_DE);
         break;
     case 0xE1: //POP H
-
+        cpu8080_POP(&reg_DE);
         break;
     case 0xF1: //POP PSW
-
+        cpu8080_POP(&reg_PSW);
         break;
     case 0xC2: //JNZ a16
-
+        if(!reg_Flags.Z) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xD2: //JNC a16
-
+        if(!reg_Flags.C) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xE2: //JPO a16
-
+        if(!reg_Flags.P) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xF2: //JP a16
-
+        if(reg_Flags.S) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xC3: //JMP a16
-
+        reg_PC = cpu8080_next_short();
         break;
     case 0xD3: //OUT d8
 
         break;
     case 0xE3: //XTHL
-
+        cpu8080_XTHL();
         break;
     case 0xF3: //DI
 
@@ -859,16 +892,16 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0xC5: //PUSH B
-
+        cpu8080_PUSH(reg_BC);
         break;
     case 0xD5: //PUSH D
-
+        cpu8080_PUSH(reg_DE);
         break;
     case 0xE5: //PUSH H
-
+        cpu8080_PUSH(reg_HL);
         break;
     case 0xF5: //PUSH PSW
-
+        cpu8080_PUSH(reg_PSW);
         break;
     case 0xC6: //ADI d8
         cpu8080_ADD(cpu8080_next_byte());
@@ -916,22 +949,30 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         reg_PC = reg_HL;
         break;
     case 0xF9: //SPHL
-        reg_SP = ram[reg_HL];
+        reg_SP = reg_HL;
         break;
     case 0xCA: //JZ a16
-
+        if(reg_Flags.Z) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xDA: //JC a16
-
+        if(reg_Flags.C) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xEA: //JPE a16
-
+        if(reg_Flags.P) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xFA: //JM a16
-
+        if(reg_Flags.S) {
+            reg_PC = cpu8080_next_short();
+        }
         break;
     case 0xCB: //JMP a16
-
+        reg_PC = cpu8080_next_short();
         break;
     case 0xDB: //IN d8
 
