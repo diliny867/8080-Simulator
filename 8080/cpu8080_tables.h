@@ -8,6 +8,12 @@
 #define P_BIT (0x04)
 #define C_BIT (0x01)
 
+#define S_BIT_POS (7)
+#define Z_BIT_POS (6)
+#define A_BIT_POS (4)
+#define P_BIT_POS (2)
+#define C_BIT_POS (0)
+
 // initial value for flag register
 #define F_BITS (0x02)
 
