@@ -92,12 +92,12 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 	if(token->label.len != 0) {
 		add_label(token->label, a->curr_addr);
 	}
-	int b_size = sizeof(opcodes_b)/sizeof(opcodes_b[0]);
+	int b_size = sizeof(opcodes_base)/sizeof(opcodes_base[0]);
 	if(token->opcode.len == 0) {
 		return;
 	}
 	for(int i=0;i<b_size;i++) {
-		opcode_base_t obt = opcodes_b[i];
+		opcode_base_t obt = opcodes_base[i];
 		if(tok_str_cmp(token->opcode, obt.name)) {
 			unsigned char opcode = obt.b_code;
 #ifdef DEBUG_PRINT
@@ -130,13 +130,13 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			} else if(arg_bit_count == 6) {
 				int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
 				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)){
+					if(tok_str_cmp(token->args.snd.sv, arg_tpl_bits[j].arg)){
 						opcode |= arg_tpl_bits[j].bits << arg_at;
 						break;
 					}
 				}
 				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.snd.sv, arg_tpl_bits[j].arg)) {
+					if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)) {
 						opcode |= arg_tpl_bits[j].bits << (arg_at+3);
 						break;
 					}
@@ -150,7 +150,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			fputc(opcode, file);
 			a->curr_addr++;
 			int arg_ep_cnt = clamp(arg_bit_count/2, 0, 2);
-			int op_fin_len = opcodes_o_d[opcode].len - 1;
+			int op_fin_len = opcodes_ordered_data[opcode].len - 1;
 			unsigned short arg_imm = 0;
 			if(arg_ep_cnt == 0) {
 				if(token->args.val_types & 1) {
@@ -232,8 +232,9 @@ void assemble(char* file_name_in, char* file_name_out) {
 }
 
 typedef struct {
-	char data[65536];
+	char data[DATA_MAX_CNT];
 	unsigned short size;
+	unsigned short start;
 } program_t;
 
 program_t load_program(char* file_name_in) {
@@ -241,6 +242,7 @@ program_t load_program(char* file_name_in) {
 	FILE* file;
 	fopen_s(&file, file_name_in, "r");
 	program.size = fread(program.data, sizeof(char), sizeof(program.data), file);
+	memset(program.data + program.size, 0, DATA_MAX_CNT - program.size);
 	fclose(file);
 	return program;
 }

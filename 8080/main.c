@@ -4,6 +4,8 @@
 
 
 #include "cpu8080_assembler.h"
+#include "cpu8080_emulator.h"
+#include "cpu8080_disassembler.h"
 
 
 int main(int argc, char** argv) {
@@ -13,6 +15,8 @@ int main(int argc, char** argv) {
 
 	program_t pr = load_program("asm8080.bin");
 	print_program(&pr, 1);
+
+	print_disassemble(pr.data);
 
 	return 0;
 }

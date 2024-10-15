@@ -11,8 +11,8 @@
 
 #define CPU8080_STACK_FROM 0xFFFF
 
-typedef int8_t cpu8080_byte_t;
-typedef int16_t cpu8080_short_t;
+typedef uint8_t cpu8080_byte_t;
+typedef uint16_t cpu8080_short_t;
 typedef bool cpu8080_bool_t;
 
 typedef union {
@@ -36,7 +36,7 @@ typedef struct {
 cpu8080_reg161_t reg_PC;
 cpu8080_reg161_t reg_SP;
 
-cpu8080_byte_t ram[65536];
+cpu8080_byte_t ram[DATA_MAX_CNT];
 
 cpu8080_reg162_t _reg_AF;
 #define reg_PSW		(_reg_AF.R12)
@@ -81,26 +81,6 @@ cpu8080_byte_t devices_interrupts[DEVICES_CNT];
 cpu8080_short_t clock_target;
 #endif
 
-static inline void cpu8080_init(void) {
-	reg_AF = 0;
-	reg_F = 0x02;
-	reg_BC = 0;
-	reg_DE = 0;
-	reg_HL = 0;
-	reg_PC = 0;
-	reg_SP = CPU8080_STACK_FROM;
-	clock = 0;
-	halt = 0;
-    INTE = ~INTE_BIT;
-    INTE |= INTE_BIT; //enable interrupts
-    long_exec = false;
-    memset(devices, 0, DEVICES_CNT);
-    pending_interrupts = 0;
-#ifdef CPU8080_INSTANT_INSTRUCTIONS
-	clock_target = 0;
-#endif
-}
-
 #define cpu8080_set_flag(flag, v) reg_F = (reg_F & ~(flag)) | ((flag) * (v))
 
 #define cpu8080_is_flag_set(flag) (reg_F & flag)
@@ -108,9 +88,6 @@ static inline void cpu8080_init(void) {
 #define is_bit_set(v, bit) (((v) & (bit)) != 0)
 #define is_bitn_set(v, n) (((v) >> (n)) & 1)
 
-static inline void cpu8080_load_program(program_t* program) {
-	memcpy(ram, program->data, program->size);
-}
 
 static inline cpu8080_byte_t cpu8080_next_byte(void) {
 	return ram[reg_PC++];
@@ -1044,16 +1021,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
             long_exec = true;
         }
         break;
-    case 0xCD: //CALL a16
-        cpu8080_CALL(cpu8080_next_short());
-        break;
-    case 0xDD: //CALL a16
-        cpu8080_CALL(cpu8080_next_short());
-        break;
-    case 0xED: //CALL a16
-        cpu8080_CALL(cpu8080_next_short());
-        break;
-    case 0xFD: //CALL a16
+    case 0xCD: case 0xDD: case 0xED: case 0xFD: //CALL a16
         cpu8080_CALL(cpu8080_next_short());
         break;
     case 0xCE: //ACI d8
@@ -1082,7 +1050,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         break;
 	}
 #ifdef CPU8080_INSTANT_INSTRUCTIONS
-    clock += opcodes_o_d[instr].dur >> (4 * long_exec);
+    clock += opcodes_ordered_data[instr].dur >> (4 * long_exec);
 #else
     clock_target = clock + (opcodes_o_d[instr].dur >> (4 * long_exec));
 #endif
@@ -1097,7 +1065,7 @@ void cpu8080_exec_interrupt_instr(cpu8080_byte_t instr) {
     cpu8080_exec_instr(instr);
 }
 
-void cpu8080_check_interrupt(void) {
+void cpu8080_check_interrupts(void) {
 	if(INTE & INTE_BIT) {
         if(pending_interrupts) {
             cpu8080_byte_t instr = devices[devices_interrupts[--pending_interrupts]];
@@ -1133,11 +1101,36 @@ void cpu8080_tick(void) {
 #endif
 }
 
+static inline void cpu8080_init(void) {
+    reg_AF = 0;
+    reg_F = 0x02;
+    reg_BC = 0;
+    reg_DE = 0;
+    reg_HL = 0;
+    reg_PC = 0;
+    reg_SP = CPU8080_STACK_FROM;
+    clock = 0;
+    halt = 0;
+    INTE = ~INTE_BIT;
+    INTE |= INTE_BIT; //enable interrupts
+    long_exec = false;
+    memset(devices, 0, DEVICES_CNT);
+    pending_interrupts = 0;
+#ifdef CPU8080_INSTANT_INSTRUCTIONS
+    clock_target = 0;
+#endif
+}
+
+static inline void cpu8080_load_program(program_t* program) {
+    memcpy(ram, program->data, program->size);
+}
+
 void cpu8080_run_program(program_t* program) {
 	cpu8080_load_program(program);
 	cpu8080_init();
+    reg_PC = program->start;
 	while(!halt) {
-        cpu8080_check_interrupt();
+        cpu8080_check_interrupts();
 		cpu8080_tick();
 	}
 }

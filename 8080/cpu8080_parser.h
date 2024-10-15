@@ -232,6 +232,10 @@ static opcode_token_t gen_error_token() {
 	return tok;
 }
 
+static bool is_error_token(opcode_token_t tok) {
+	return tok.opcode.len == 0 && tok.label.len == 0 && tok.args.fst.sv.len == 0 && tok.args.snd.sv.len == 0;
+}
+
 static opcode_token_t next_token(char* line) {
 	opcode_token_t token;
 
@@ -240,7 +244,7 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		printf("Expected label or opcode");
+		printf("Expected label or opcode\n");
 		return gen_error_token();
 	}
 	line = get_opcode(line, &token.opcode.str, &token.opcode.len);
@@ -248,7 +252,7 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		printf("Expected opcode");
+		printf("Expected opcode\n");
 		return gen_error_token();
 	}
 	line = get_opcode_args(line, &token.args);
@@ -256,11 +260,11 @@ static opcode_token_t next_token(char* line) {
 	printf("\n");
 #endif
 	if(line == NULL) {
-		printf("Expected opcode arguments");
+		printf("Expected opcode arguments\n");
 		return gen_error_token();
 	}
 	if(is_rest_error(line)) {
-		printf("Unexpected");
+		printf("Unexpected\n");
 		return gen_error_token();
 	}
 
@@ -281,7 +285,17 @@ tokens_out_t parse_file(FILE* file) {
 	char* line;
 	size_t len = 0;
 	while(fgetline(&line, &len, file) != NULL) {
-		tokens_out.tokens[tokens_out.count++] = next_token(line);
+		while(isspace(*line)) {
+			line++;
+		}
+		if(*line == ';' || *line == '\0') {
+			continue;
+		}
+		opcode_token_t tok = next_token(line);
+		if(is_error_token(tok)) {
+			continue;
+		}
+		tokens_out.tokens[tokens_out.count++] = tok;
 		if(count >= tokens_out.count) {
 			count *= 2;
 			tokens_out.tokens = realloc(tokens_out.tokens, count * sizeof(opcode_token_t));
