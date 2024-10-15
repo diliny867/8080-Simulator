@@ -79,7 +79,7 @@ cpu8080_reg162_t _reg_AF;
 #define reg_AF		(_reg_AF.R12)
 #define reg_A		(_reg_AF.R2)
 #define reg_F		(_reg_AF.R1)
-#define reg_F_Flags	(*(cpu8080_reg_flags_t*)&_reg_AF.R1)
+#define reg_Flags	(*(cpu8080_reg_flags_t*)&_reg_AF.R1)
 
 cpu8080_reg162_t _reg_BC;
 #define reg_BC		(_reg_BC.R12)
@@ -145,20 +145,19 @@ void cpu8080_write_byte(cpu8080_ptr_t addr, cpu8080_byte_t v) {
 void cpu8080_write_short(cpu8080_ptr_t addr, cpu8080_short_t v) {
     ram[addr] = v & 0xFF;
     ram[addr+1] = (v >> 8) & 0xFF;
-    reg_F_Flags.C = 1;
 }
 
 void cpu8080_set_SZP(cpu8080_byte_t v) {
-    reg_F_Flags.S = (v & (1 << 7)) != 0;
-    reg_F_Flags.Z = v == 0;
-    reg_F_Flags.P =  !((is_bit_set(v,0x01) + is_bit_set(v,0x02) + is_bit_set(v,0x04) + is_bit_set(v,0x08) + is_bit_set(v,0x10) + is_bit_set(v,0x20) + is_bit_set(v,0x40) + is_bit_set(v,0x80)) & 1); // counts all bits, checks if even
+    reg_Flags.S = is_bitn_set(v, 7);
+    reg_Flags.Z = v == 0;
+    reg_Flags.P =  !((is_bit_set(v,0x01) + is_bit_set(v,0x02) + is_bit_set(v,0x04) + is_bit_set(v,0x08) + is_bit_set(v,0x10) + is_bit_set(v,0x20) + is_bit_set(v,0x40) + is_bit_set(v,0x80)) & 1); // counts all bits, checks if even
 }
 
 void cpu8080_ADD(cpu8080_byte_t v) {
     cpu8080_short_t res = reg_A + v;
     cpu8080_set_SZP(res);
-    reg_F_Flags.C = (res >> 8) & 1;
-    reg_F_Flags.A = ((res >> 4) & 1) && ((reg_A >> 3) & 1);
+    reg_Flags.C = (res >> 8) & 1;
+    reg_Flags.A = ((res >> 4) & 1) && ((reg_A >> 3) & 1);
     reg_A = res;
 }
 void cpu8080_SUB(cpu8080_byte_t v) {
@@ -166,56 +165,81 @@ void cpu8080_SUB(cpu8080_byte_t v) {
 }
 
 void cpu8080_ADC(cpu8080_byte_t v) {
-    cpu8080_ADD(v + reg_F_Flags.C);
+    cpu8080_ADD(v + reg_Flags.C);
 }
 void cpu8080_SBB(cpu8080_byte_t v) {
-    cpu8080_ADD(-v - reg_F_Flags.C);
+    cpu8080_ADD(-v - reg_Flags.C);
 }
 
 void cpu8080_INR(cpu8080_byte_t* dest) {
     *dest += 1;
     cpu8080_set_SZP(*dest);
-    reg_F_Flags.A = ((*dest >> 4) & 1) && (((*dest-1) >> 3) & 1);
+    reg_Flags.A = ((*dest >> 4) & 1) && (((*dest-1) >> 3) & 1);
 }
 void cpu8080_DCR(cpu8080_byte_t* dest) {
     *dest -= 1;
     cpu8080_set_SZP(*dest);
-    reg_F_Flags.A = ((*dest >> 4) & 1) && (((*dest+1) >> 3) & 1);
+    reg_Flags.A = ((*dest >> 4) & 1) && (((*dest+1) >> 3) & 1);
 }
 
 void cpu8080_RAL(void) {
     cpu8080_bool_t carry = is_bitn_set(reg_A, 7);
-    reg_A = reg_A = (reg_A << 1) | reg_F_Flags.C;
-    reg_F_Flags.C = carry;
+    reg_A = reg_A = (reg_A << 1) | reg_Flags.C;
+    reg_Flags.C = carry;
 }
 void cpu8080_RLC(void) {
-    reg_F_Flags.C = is_bitn_set(reg_A, 7);
-    reg_A = (reg_A << 1) | reg_F_Flags.C;
+    reg_Flags.C = is_bitn_set(reg_A, 7);
+    reg_A = (reg_A << 1) | reg_Flags.C;
 }
 void cpu8080_RAR(void) {
     cpu8080_bool_t carry = is_bitn_set(reg_A, 0);
-    reg_A = reg_A = ((reg_A >> 1) & ~(1 << 7)) | (reg_F_Flags.C << 7); // & ~(1 << 7) clears left most bit
-    reg_F_Flags.C = carry;
+    reg_A = reg_A = ((reg_A >> 1) & ~(1 << 7)) | (reg_Flags.C << 7); // & ~(1 << 7) clears left most bit
+    reg_Flags.C = carry;
 }
 void cpu8080_RRC(void) {
-    reg_F_Flags.C = is_bitn_set(reg_A, 0);
-    reg_A = ((reg_A >> 1) & ~(1 << 7)) | (reg_F_Flags.C << 7);
+    reg_Flags.C = is_bitn_set(reg_A, 0);
+    reg_A = ((reg_A >> 1) & ~(1 << 7)) | (reg_Flags.C << 7);
 }
 
 void cpu8080_DAA(void) {
-    if(reg_F_Flags.A | (reg_A > 9)) {
+    if(reg_Flags.A | (reg_A > 9)) {
         cpu8080_ADD(0x06);
     }
-    if(reg_F_Flags.C | (reg_A >> 4 > 9)) {
+    if(reg_Flags.C | (reg_A >> 4 > 9)) {
         cpu8080_ADD(0x60);
     }
 }
 
 void cpu8080_DAD(cpu8080_short_t v) {
     int32_t res = reg_HL + v;
-    reg_F_Flags.C = (res >> 16) & 1;
+    reg_Flags.C = (res >> 16) & 1;
     reg_HL = res;
 }
+
+void cpu8080_ANA(cpu8080_byte_t v) {
+    reg_A &= v;
+    cpu8080_set_SZP(reg_A);
+    reg_Flags.C = 0;
+}
+void cpu8080_ORA(cpu8080_byte_t v) {
+    reg_A |= v;
+    cpu8080_set_SZP(reg_A);
+    reg_Flags.C = 0;
+}
+void cpu8080_XRA(cpu8080_byte_t v) {
+    reg_A ^= v;
+    cpu8080_set_SZP(reg_A);
+    reg_Flags.C = 0;
+}
+void cpu8080_CMP(cpu8080_byte_t v) {
+    cpu8080_byte_t a = reg_A;
+    cpu8080_SUB(v);
+    reg_A = a;
+    if(reg_Flags.S) {
+        reg_Flags.C = !reg_Flags.C;
+    }
+}
+
 
 void cpu8080_exec_instr(cpu8080_byte_t instr) {
     reg_PC++;
@@ -304,7 +328,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_DAA();
 		break;
 	case 0x37: //STC
-        reg_F_Flags.C = 1;
+        reg_Flags.C = 1;
 		break;
 	case 0x09: //DAD B
         cpu8080_DAD(reg_BC);
@@ -388,7 +412,7 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         reg_A = ~reg_A;
 		break;
 	case 0x3F: //CMC
-        reg_F_Flags.C = ~reg_F_Flags.C;
+        reg_Flags.C = !reg_Flags.C;
 		break;
     case 0x40: //MOV B,B
         reg_B = reg_B;
@@ -589,10 +613,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_B);
         break;
     case 0xA0: //ANA B
-
+        cpu8080_ANA(reg_B);
         break;
     case 0xB0: //ORA B
-
+        cpu8080_ORA(reg_B);
         break;
     case 0x81: //ADD C
         cpu8080_ADD(reg_C);
@@ -601,10 +625,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_C);
         break;
     case 0xA1: //ANA C
-
+        cpu8080_ANA(reg_C);
         break;
     case 0xB1: //ORA C
-
+        cpu8080_ORA(reg_C);
         break;
     case 0x82: //ADD D
         cpu8080_ADD(reg_D);
@@ -613,10 +637,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_D);
         break;
     case 0xA2: //ANA D
-
+        cpu8080_ANA(reg_D);
         break;
     case 0xB2: //ORA D
-
+        cpu8080_ORA(reg_D);
         break;
     case 0x83: //ADD E
         cpu8080_ADD(reg_E);
@@ -625,10 +649,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_E);
         break;
     case 0xA3: //ANA E
-
+        cpu8080_ANA(reg_E);
         break;
     case 0xB3: //ORA E
-
+        cpu8080_ORA(reg_E);
         break;
     case 0x84: //ADD H
         cpu8080_ADD(reg_H);
@@ -637,10 +661,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_H);
         break;
     case 0xA4: //ANA H
-
+        cpu8080_ANA(reg_H);
         break;
     case 0xB4: //ORA H
-
+        cpu8080_ORA(reg_H);
         break;
     case 0x85: //ADD L
         cpu8080_ADD(reg_L);
@@ -649,10 +673,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_L);
         break;
     case 0xA5: //ANA L
-
+        cpu8080_ANA(reg_L);
         break;
     case 0xB5: //ORA L
-
+        cpu8080_ORA(reg_L);
         break;
     case 0x86: //ADD M
         cpu8080_ADD(reg_M);
@@ -661,10 +685,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_M);
         break;
     case 0xA6: //ANA M
-
+        cpu8080_ANA(reg_M);
         break;
     case 0xB6: //ORA M
-
+        cpu8080_ORA(reg_M);
         break;
     case 0x87: //ADD A
         cpu8080_ADD(reg_A);
@@ -673,10 +697,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SUB(reg_A);
         break;
     case 0xA7: //ANA A
-
+        cpu8080_ANA(reg_A);
         break;
     case 0xB7: //ORA A
-
+        cpu8080_ORA(reg_A);
         break;
     case 0x88: //ADC B
         cpu8080_ADC(reg_B);
@@ -685,10 +709,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_B);
         break;
     case 0xA8: //XRA B
-
+        cpu8080_XRA(reg_B);
         break;
     case 0xB8: //CMP B
-
+        cpu8080_CMP(reg_B);
         break;
     case 0x89: //ADC C
         cpu8080_ADC(reg_C);
@@ -697,10 +721,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_C);
         break;
     case 0xA9: //XRA C
-
+        cpu8080_XRA(reg_C);
         break;
     case 0xB9: //CMP C
-
+        cpu8080_CMP(reg_C);
         break;
     case 0x8A: //ADC D
         cpu8080_ADC(reg_D);
@@ -709,10 +733,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_D);
         break;
     case 0xAA: //XRA D
-
+        cpu8080_XRA(reg_D);
         break;
     case 0xBA: //CMP D
-
+        cpu8080_CMP(reg_D);
         break;
     case 0x8B: //ADC E
         cpu8080_ADC(reg_E);
@@ -721,10 +745,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_E);
         break;
     case 0xAB: //XRA E
-
+        cpu8080_XRA(reg_E);
         break;
     case 0xBB: //CMP E
-
+        cpu8080_CMP(reg_E);
         break;
     case 0x8C: //ADC H
         cpu8080_ADC(reg_H);
@@ -733,10 +757,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_H);
         break;
     case 0xAC: //XRA H
-
+        cpu8080_XRA(reg_H);
         break;
     case 0xBC: //CMP H
-
+        cpu8080_CMP(reg_H);
         break;
     case 0x8D: //ADC L
         cpu8080_ADC(reg_L);
@@ -744,11 +768,11 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
     case 0x9D: //SBB L
         cpu8080_SBB(reg_L);
         break;
-    case 0xAD: //XRA L
-
+	case 0xAD: //XRA L
+        cpu8080_XRA(reg_L);
         break;
     case 0xBD: //CMP L
-
+        cpu8080_CMP(reg_L);
         break;
     case 0x8E: //ADC M
         cpu8080_ADC(reg_M);
@@ -757,10 +781,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_M);
         break;
     case 0xAE: //XRA M
-
+        cpu8080_XRA(reg_M);
         break;
     case 0xBE: //CMP M
-
+        cpu8080_CMP(reg_M);
         break;
     case 0x8F: //ADC A
         cpu8080_ADC(reg_A);
@@ -769,10 +793,10 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_SBB(reg_A);
         break;
     case 0xAF: //XRA A
-
+        cpu8080_XRA(reg_A);
         break;
     case 0xBF: //CMP A
-
+        cpu8080_CMP(reg_A);
         break;
     case 0xC0: //RNZ
 
@@ -847,16 +871,16 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0xC6: //ADI d8
-        reg_A += cpu8080_next_byte();
+        cpu8080_ADD(cpu8080_next_byte());
         break;
     case 0xD6: //SUI d8
-
+        cpu8080_SUB(cpu8080_next_byte());
         break;
     case 0xE6: //ANI d8
-
+        cpu8080_ANA(cpu8080_next_byte());
         break;
     case 0xF6: //ORI d8
-
+        cpu8080_ORA(cpu8080_next_byte());
         break;
     case 0xC7: //RST 0
 
@@ -946,16 +970,16 @@ void cpu8080_exec_instr(cpu8080_byte_t instr) {
 
         break;
     case 0xCE: //ACI d8
-
+        cpu8080_ADC(cpu8080_next_byte());
         break;
     case 0xDE: //SBI d8
-
+        cpu8080_SBB(cpu8080_next_byte());
         break;
     case 0xEE: //XRI d8
-
+        cpu8080_XRA(cpu8080_next_byte());
         break;
     case 0xFE: //CPI d8
-
+        cpu8080_CMP(cpu8080_next_byte());
         break;
     case 0xCF: //RST 1
 
