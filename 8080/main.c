@@ -18,7 +18,12 @@ int main(int argc, char** argv) {
 
 	print_disassemble(pr.data);
 
-	cpu8080_run_program(&pr);
+	cpu8080_start_program(&pr, 0, 0);
+
+	while(!cpu8080_halt()) {
+		cpu8080_step();
+	}
+	cpu8080_dump_data();
 
 	return 0;
 }

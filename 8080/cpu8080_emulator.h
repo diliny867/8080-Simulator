@@ -69,13 +69,13 @@ cpu8080_bool_t long_exec;
 cpu8080_byte_t inte;
 #define INTE_BIT 0x4
 
-#define DEVICES_CNT 256
-cpu8080_byte_t devices[DEVICES_CNT];
-
-cpu8080_byte_t pending_interrupts;
-cpu8080_byte_t devices_interrupts[DEVICES_CNT];
+cpu8080_byte_t inte_bus;
+cpu8080_bool_t inte_pending;
 
 cpu8080_byte_t curr_opcode;
+
+cpu8080_port_in_t port_in;
+cpu8080_port_out_t port_out;
 
 #ifndef CPU8080_INSTANT_INSTRUCTIONS
 cpu8080_short_t clock_target;
@@ -240,187 +240,187 @@ static inline void cpu8080_RST(cpu8080_byte_t v) {
 }
 
 static inline void cpu8080_IN(cpu8080_byte_t d) {
-    reg_A = devices[d];
+    reg_A = port_in(d);
 }
 static inline void cpu8080_OUT(cpu8080_byte_t d) {
-    devices[d] = reg_A;
+    port_out(d, reg_A);
 }
 
 
 static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
     curr_opcode = instr;
     long_exec = false;
-	switch(instr) {
-	case 0x00: case 0x10: case 0x20: case 0x30: case 0x08: case 0x18: case 0x28: case 0x38: //NOP
-		break;
-	case 0x01: //LXI B,d16
+    switch(instr) {
+    case 0x00: case 0x10: case 0x20: case 0x30: case 0x08: case 0x18: case 0x28: case 0x38: //NOP
+        break;
+    case 0x01: //LXI B,d16
         reg_BC = cpu8080_next_short();
-		break;
-	case 0x11: //LXI D,d16:
+        break;
+    case 0x11: //LXI D,d16:
         reg_DE = cpu8080_next_short();
-		break;
-	case 0x21: //LXI H,d16
+        break;
+    case 0x21: //LXI H,d16
         reg_HL = cpu8080_next_short();
-		break;
-	case 0x31: //LXI SP,d16
+        break;
+    case 0x31: //LXI SP,d16
         reg_SP = cpu8080_next_short();
-		break;
-	case 0x02: //STAX B
+        break;
+    case 0x02: //STAX B
         cpu8080_write_byte((cpu8080_short_t)ram + reg_BC, reg_A);
-		break;
-	case 0x12: //STAX D
+        break;
+    case 0x12: //STAX D
         cpu8080_write_byte((cpu8080_short_t)ram + reg_DE, reg_A);
-		break;
-	case 0x22: //SHLD a16
+        break;
+    case 0x22: //SHLD a16
         cpu8080_write_short(cpu8080_next_short(), reg_HL);
-		break;
-	case 0x32: //STA a16
+        break;
+    case 0x32: //STA a16
         cpu8080_write_byte(cpu8080_next_short(), reg_A);
-		break;
-	case 0x03: //INX B
+        break;
+    case 0x03: //INX B
         reg_BC++;
-		break;
-	case 0x13: //INX D
+        break;
+    case 0x13: //INX D
         reg_DE++;
-		break;
-	case 0x23: //INX H
+        break;
+    case 0x23: //INX H
         reg_HL++;
-		break;
-	case 0x33: //INX SP
+        break;
+    case 0x33: //INX SP
         reg_SP++;
-		break;
-	case 0x04: //INR B
+        break;
+    case 0x04: //INR B
         cpu8080_INR(&reg_B);
-		break;
-	case 0x14: //INR D
+        break;
+    case 0x14: //INR D
         cpu8080_INR(&reg_D);
-		break;
-	case 0x24: //INR H
+        break;
+    case 0x24: //INR H
         cpu8080_INR(&reg_H);
-		break;
-	case 0x34: //INR M
+        break;
+    case 0x34: //INR M
         cpu8080_INR(&reg_M);
-		break;
-	case 0x05: //DCR B
+        break;
+    case 0x05: //DCR B
         cpu8080_DCR(&reg_B);
-		break;
-	case 0x15: //DCR D
+        break;
+    case 0x15: //DCR D
         cpu8080_DCR(&reg_D);
-		break;
-	case 0x25: //DCR H
+        break;
+    case 0x25: //DCR H
         cpu8080_DCR(&reg_H);
-		break;
-	case 0x35: //DCR M
+        break;
+    case 0x35: //DCR M
         cpu8080_DCR(&reg_M);
-		break;
-	case 0x06: //MVI B,d8
+        break;
+    case 0x06: //MVI B,d8
         reg_B = cpu8080_next_byte();
-		break;
-	case 0x16: //MVI D,d8
+        break;
+    case 0x16: //MVI D,d8
         reg_D = cpu8080_next_byte();
-		break;
-	case 0x26: //MVI H,d8
+        break;
+    case 0x26: //MVI H,d8
         reg_H = cpu8080_next_byte();
-		break;
-	case 0x36: //MVI M,d8
+        break;
+    case 0x36: //MVI M,d8
         reg_M = cpu8080_next_byte();
-		break;
-	case 0x07: //RLC
+        break;
+    case 0x07: //RLC
         cpu8080_RLC();
-		break;
+        break;
     case 0x17: //RAL
         cpu8080_RAL();
         break;
-	case 0x27: //DAA
+    case 0x27: //DAA
         cpu8080_DAA();
-		break;
-	case 0x37: //STC
+        break;
+    case 0x37: //STC
         reg_Flags.C = 1;
-		break;
-	case 0x09: //DAD B
+        break;
+    case 0x09: //DAD B
         cpu8080_DAD(reg_BC);
-		break;
-	case 0x19: //DAD D
+        break;
+    case 0x19: //DAD D
         cpu8080_DAD(reg_DE);
-		break;
-	case 0x29: //DAD H
+        break;
+    case 0x29: //DAD H
         cpu8080_DAD(reg_H);
-		break;
-	case 0x39: //DAD SP
+        break;
+    case 0x39: //DAD SP
         cpu8080_DAD(reg_SP);
-		break;
-	case 0x0A: //LDAX B
+        break;
+    case 0x0A: //LDAX B
         reg_A = ram[reg_BC];
-		break;
-	case 0x1A: //LDAX D
+        break;
+    case 0x1A: //LDAX D
         reg_A = ram[reg_DE];
-		break;
-	case 0x2A: //LHLD a16
+        break;
+    case 0x2A: //LHLD a16
         cpu8080_LHLD(cpu8080_next_short());
-		break;
-	case 0x3A: //LDA a16
+        break;
+    case 0x3A: //LDA a16
         reg_A = ram[cpu8080_next_short()];
-		break;
-	case 0x0B: //DCX B
+        break;
+    case 0x0B: //DCX B
         reg_BC--;
-		break;
-	case 0x1B: //DCX D
+        break;
+    case 0x1B: //DCX D
         reg_DE--;
-		break;
-	case 0x2B: //DCX H
+        break;
+    case 0x2B: //DCX H
         reg_HL--;
-		break;
-	case 0x3B: //DCX SP
+        break;
+    case 0x3B: //DCX SP
         reg_SP--;
-		break;
-	case 0x0C: //INR C
+        break;
+    case 0x0C: //INR C
         cpu8080_INR(&reg_C);
-		break;
-	case 0x1C: //INR E
+        break;
+    case 0x1C: //INR E
         cpu8080_INR(&reg_E);
-		break;
-	case 0x2C: //INR L
+        break;
+    case 0x2C: //INR L
         cpu8080_INR(&reg_L);
-		break;
-	case 0x3C: //INR A
+        break;
+    case 0x3C: //INR A
         cpu8080_INR(&reg_A);
-		break;
-	case 0x0D: //DCR C
+        break;
+    case 0x0D: //DCR C
         cpu8080_DCR(&reg_C);
-		break;
-	case 0x1D: //DCR E
+        break;
+    case 0x1D: //DCR E
         cpu8080_DCR(&reg_E);
-		break;
-	case 0x2D: //DCR L
+        break;
+    case 0x2D: //DCR L
         cpu8080_DCR(&reg_L);
-		break;
-	case 0x3D: //DCR A
+        break;
+    case 0x3D: //DCR A
         cpu8080_DCR(&reg_A);
-		break;
-	case 0x0E: //MVI C,d8
+        break;
+    case 0x0E: //MVI C,d8
         reg_C = cpu8080_next_byte();
-		break;
-	case 0x1E: //MVI E,d8
+        break;
+    case 0x1E: //MVI E,d8
         reg_E = cpu8080_next_byte();
-		break;
-	case 0x2E: //MVI L,d8
+        break;
+    case 0x2E: //MVI L,d8
         reg_L = cpu8080_next_byte();
-		break;
-	case 0x3E: //MVI A,d8
+        break;
+    case 0x3E: //MVI A,d8
         reg_A = cpu8080_next_byte();
-		break;
-	case 0x0F: //RRC
+        break;
+    case 0x0F: //RRC
         cpu8080_RRC();
-		break;
-	case 0x1F: //RAR
+        break;
+    case 0x1F: //RAR
         cpu8080_RAR();
-		break;
-	case 0x2F: //CMA
+        break;
+    case 0x2F: //CMA
         reg_A = ~reg_A;
-		break;
-	case 0x3F: //CMC
+        break;
+    case 0x3F: //CMC
         reg_Flags.C = !reg_Flags.C;
-		break;
+        break;
     case 0x40: //MOV B,B
         reg_B = reg_B;
         break;
@@ -776,7 +776,7 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
     case 0x9D: //SBB L
         cpu8080_SBB(reg_L);
         break;
-	case 0xAD: //XRA L
+    case 0xAD: //XRA L
         cpu8080_XRA(reg_L);
         break;
     case 0xBD: //CMP L
@@ -1056,54 +1056,47 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
     case 0xFF: //RST 7
         cpu8080_RST(7);
         break;
-	}
+    }
 #ifdef CPU8080_INSTANT_INSTRUCTIONS
-    clock += opcodes_ordered_data[instr].dur >> (4 * long_exec);
+    clock += (opcodes_ordered_data[instr].dur >> (4 * long_exec)) & 0xFF;
 #else
-    clock_target = clock + (opcodes_o_d[instr].dur >> (4 * long_exec));
+    clock_target = clock + (opcodes_ordered_data[instr].dur >> (4 * long_exec)) & 0xFF;
     clock++;
 #endif
 }
 
-static inline void cpu8080_exec_prog_instr(cpu8080_byte_t instr) {
-    cpu8080_exec_instr(instr);
-}
-
 static inline void cpu8080_check_interrupts(void) {
-	if(inte & INTE_BIT) {
-        if(pending_interrupts) {
-            cpu8080_byte_t instr = devices[devices_interrupts[--pending_interrupts]];
-            memmove(devices_interrupts, devices_interrupts + 1, pending_interrupts);
-            cpu8080_exec_instr(instr);
-            inte &= ~INTE_BIT;
-        }
+	if(inte_pending && inte & INTE_BIT) {
+        cpu8080_exec_instr(inte_bus);
+        inte &= ~INTE_BIT;
+        inte_pending = false;
 	}
 }
 
-inline void push_interrupt(cpu8080_byte_t d, cpu8080_byte_t instr) {
-    devices_interrupts[pending_interrupts++] = d;
-    devices[d] = instr;
-}
-inline void remove_interrupt(cpu8080_byte_t d) {
-    for(cpu8080_byte_t i = 0; i < pending_interrupts; i++) {
-	    if(devices_interrupts[i] == d) {
-            memmove(devices_interrupts + i, devices_interrupts + i + 1, --pending_interrupts - d);
-            break;
-	    }
-    }
-    
+inline void cpu8080_set_interrupt(cpu8080_byte_t instr) {
+    inte_pending = true;
+    inte_bus = instr;
 }
 
 static inline void cpu8080_tick(void) {
 #ifdef CPU8080_INSTANT_INSTRUCTIONS
-    cpu8080_exec_prog_instr(cpu8080_next_byte());
+    cpu8080_exec_instr(cpu8080_next_byte());
 #else
     if(clock >= clock_target) {
-        cpu8080_exec_prog_instr(cpu8080_next_byte());
+        cpu8080_exec_instr(cpu8080_next_byte());
     }else {
         clock++;
 	}
 #endif
+}
+
+static inline void cpu8080_step(void) {
+    cpu8080_check_interrupts();
+    cpu8080_tick();
+}
+
+static inline cpu8080_bool_t cpu8080_halt(void) {
+    return halt;
 }
 
 static inline void cpu8080_init(void) {
@@ -1119,8 +1112,8 @@ static inline void cpu8080_init(void) {
     inte = ~INTE_BIT;
     inte |= INTE_BIT; //enable interrupts
     long_exec = false;
-    memset(devices, 0, DEVICES_CNT);
-    pending_interrupts = 0;
+    inte_bus = 0;
+    inte_pending = false;
 #ifndef CPU8080_INSTANT_INSTRUCTIONS
     clock_target = 0;
 #endif
@@ -1169,20 +1162,33 @@ static inline void cpu8080_dump_data(void) {
     print_disassemble(ram);
 }
 
-static inline void cpu8080_load_program(program_t* program) {
+static inline void cpu8080_load_program(program_t* program, cpu8080_port_in_t port_in_func, cpu8080_port_out_t port_out_func) {
     memcpy(ram, program->data, program->size);
+    port_in = port_in_func;
+    port_out = port_out_func;
 }
 
-void cpu8080_run_program(program_t* program) {
-	cpu8080_load_program(program);
+static inline cpu8080_byte_t dummy_port_in_func(cpu8080_byte_t d) {
+    return 0;
+}
+static inline void dummy_port_out_func(cpu8080_byte_t d, cpu8080_byte_t v) {
+}
+
+void cpu8080_start_program(program_t* program, cpu8080_port_in_t port_in_func, cpu8080_port_out_t port_out_func) {
+    if(port_in_func == NULL) {
+        port_in_func = dummy_port_in_func;
+    }
+    if(port_out_func == NULL) {
+        port_out_func = dummy_port_out_func;
+    }
+	cpu8080_load_program(program, port_in_func, port_out_func);
 	cpu8080_init();
     reg_PC = program->start;
-	while(!halt) {
-        //cpu8080_dump_data();
-        //printf("\n");
-        cpu8080_check_interrupts();
-		cpu8080_tick();
-	}
-    cpu8080_dump_data();
-    printf("\n");
+	//while(!halt) {
+    //    //cpu8080_dump_data();
+    //    //printf("\n");
+    //    cpu8080_step();
+	//}
+    //cpu8080_dump_data();
+    //printf("\n");
 }
