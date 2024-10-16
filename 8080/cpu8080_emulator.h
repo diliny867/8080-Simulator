@@ -66,7 +66,7 @@ cpu8080_short_t clock;
 
 cpu8080_bool_t long_exec;
 
-cpu8080_byte_t INTE;
+cpu8080_byte_t inte;
 #define INTE_BIT 0x4
 
 #define DEVICES_CNT 256
@@ -77,7 +77,7 @@ cpu8080_byte_t devices_interrupts[DEVICES_CNT];
 
 cpu8080_byte_t curr_opcode;
 
-#ifdef CPU8080_INSTANT_INSTRUCTIONS
+#ifndef CPU8080_INSTANT_INSTRUCTIONS
 cpu8080_short_t clock_target;
 #endif
 
@@ -202,9 +202,10 @@ static inline void cpu8080_PUSH(cpu8080_short_t v) {
     ram[reg_SP - 2] = v & 0xFF;
     reg_SP -= 2;
 }
-static inline void cpu8080_POP(cpu8080_short_t* dest) {
-    *dest = (cpu8080_short_t)ram[reg_SP + 0] | ((cpu8080_short_t)ram[reg_SP + 1] << 8);
+static inline cpu8080_short_t cpu8080_POP(void) {
+    cpu8080_short_t res = (cpu8080_short_t)ram[reg_SP + 0] | ((cpu8080_short_t)ram[reg_SP + 1] << 8);
     reg_SP += 2;
+    return res;
 }
 static inline void cpu8080_XTHL(void) {
     cpu8080_short_t tmp = reg_HL;
@@ -218,6 +219,12 @@ static inline void cpu8080_LHLD(cpu8080_short_t addr) {
     reg_H = ram[addr + 1];
 }
 
+static inline void cpu8080_XCHG(void) {
+    cpu8080_short_t tmp = reg_DE;
+    reg_DE = reg_HL;
+    reg_HL = tmp;
+}
+
 static inline void cpu8080_JMP(cpu8080_short_t addr) {
     reg_PC = addr;
 }
@@ -226,7 +233,7 @@ static inline void cpu8080_CALL(cpu8080_short_t addr) {
     cpu8080_JMP(addr);
 }
 static inline void cpu8080_RET(void) {
-    cpu8080_POP(&reg_PC);
+    reg_PC = cpu8080_POP();
 }
 static inline void cpu8080_RST(cpu8080_byte_t v) {
     cpu8080_CALL(v << 3);
@@ -824,16 +831,16 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
         }
         break;
     case 0xC1: //POP B
-        cpu8080_POP(&reg_BC);
+        reg_BC = cpu8080_POP();
         break;
     case 0xD1: //POP D
-        cpu8080_POP(&reg_DE);
+        reg_DE = cpu8080_POP();
         break;
     case 0xE1: //POP H
-        cpu8080_POP(&reg_DE);
+        reg_DE = cpu8080_POP();
         break;
     case 0xF1: //POP PSW
-        cpu8080_POP(&reg_PSW);
+        reg_PSW = cpu8080_POP();
         break;
     case 0xC2: //JNZ a16
         if(!reg_Flags.Z) {
@@ -865,7 +872,7 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
         cpu8080_XTHL();
         break;
     case 0xF3: //DI
-        INTE &= ~INTE_BIT;
+        inte &= ~INTE_BIT;
         break;
     case 0xC4: //CNZ a16
         if(!reg_Flags.Z) {
@@ -989,14 +996,14 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
     case 0xDB: //IN d8
         cpu8080_IN(cpu8080_next_byte());
         break;
-    case 0xEB: { //XCHG
-        cpu8080_short_t tmp = reg_DE;
-        reg_DE = reg_HL;
-        reg_HL = tmp;
+    case 0xEB: //XCHG
+        //reg_DE ^= reg_HL; // xor swap
+        //reg_HL ^= reg_DE;
+        //reg_DE ^= reg_HL;
+        cpu8080_XCHG();
         break;
-    }
     case 0xFB: //EI
-        INTE |= INTE_BIT;
+        inte |= INTE_BIT;
         break;
     case 0xCC: //CZ a16
         if(reg_Flags.Z) {
@@ -1054,6 +1061,7 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
     clock += opcodes_ordered_data[instr].dur >> (4 * long_exec);
 #else
     clock_target = clock + (opcodes_o_d[instr].dur >> (4 * long_exec));
+    clock++;
 #endif
 }
 
@@ -1061,26 +1069,22 @@ static inline void cpu8080_exec_prog_instr(cpu8080_byte_t instr) {
     cpu8080_exec_instr(instr);
 }
 
-static inline void cpu8080_exec_interrupt_instr(cpu8080_byte_t instr) {
-    cpu8080_exec_instr(instr);
-}
-
 static inline void cpu8080_check_interrupts(void) {
-	if(INTE & INTE_BIT) {
+	if(inte & INTE_BIT) {
         if(pending_interrupts) {
             cpu8080_byte_t instr = devices[devices_interrupts[--pending_interrupts]];
             memmove(devices_interrupts, devices_interrupts + 1, pending_interrupts);
-            cpu8080_exec_interrupt_instr(instr);
-            INTE &= ~INTE_BIT;
+            cpu8080_exec_instr(instr);
+            inte &= ~INTE_BIT;
         }
 	}
 }
 
-static inline void push_interrupt(cpu8080_byte_t d, cpu8080_byte_t instr) {
+inline void push_interrupt(cpu8080_byte_t d, cpu8080_byte_t instr) {
     devices_interrupts[pending_interrupts++] = d;
     devices[d] = instr;
 }
-static inline void remove_interrupt(cpu8080_byte_t d) {
+inline void remove_interrupt(cpu8080_byte_t d) {
     for(cpu8080_byte_t i = 0; i < pending_interrupts; i++) {
 	    if(devices_interrupts[i] == d) {
             memmove(devices_interrupts + i, devices_interrupts + i + 1, --pending_interrupts - d);
@@ -1094,10 +1098,11 @@ static inline void cpu8080_tick(void) {
 #ifdef CPU8080_INSTANT_INSTRUCTIONS
     cpu8080_exec_prog_instr(cpu8080_next_byte());
 #else
-	if(clock >= clock_target) {
+    if(clock >= clock_target) {
         cpu8080_exec_prog_instr(cpu8080_next_byte());
+    }else {
+        clock++;
 	}
-	clock++;
 #endif
 }
 
@@ -1111,18 +1116,34 @@ static inline void cpu8080_init(void) {
     reg_SP = CPU8080_STACK_FROM;
     clock = 0;
     halt = 0;
-    INTE = ~INTE_BIT;
-    INTE |= INTE_BIT; //enable interrupts
+    inte = ~INTE_BIT;
+    inte |= INTE_BIT; //enable interrupts
     long_exec = false;
     memset(devices, 0, DEVICES_CNT);
     pending_interrupts = 0;
-#ifdef CPU8080_INSTANT_INSTRUCTIONS
+#ifndef CPU8080_INSTANT_INSTRUCTIONS
     clock_target = 0;
 #endif
 }
 
+static inline void print_binary8(cpu8080_byte_t v) {
+    for(int i = 8; i >= 0; i--) {
+        printf("%d", (v >> i) & 1);
+    }
+}
+static inline void print_binary16(cpu8080_short_t v) {
+    for(int i = 15; i >= 0; i--) {
+        printf("%d", (v >> i) & 1);
+	}
+}
+
 static inline void cpu8080_print_reg(char* name, cpu8080_short_t v) {
-    printf("Register %s: 0x%02hhX_%02hhX\n", name, v >> 8, v & 0xFF);
+    printf("Register %s: 0x%02hhX_%02hhX   ", name, v >> 8, v & 0xFF);
+    printf("0b");
+    print_binary8(v >> 8);
+    printf("_");
+    print_binary8(v & 0xFF);
+    printf("\n");
 }
 
 static inline void cpu8080_print_flags(cpu8080_reg_flags_t flags) {
@@ -1138,8 +1159,14 @@ static inline void cpu8080_dump_registers(void) {
     cpu8080_print_reg("HL", reg_HL);
     cpu8080_print_reg("SP", reg_SP);
     cpu8080_print_reg("PC", reg_PC);
-    printf("\n");
+    //printf("\n");
     cpu8080_print_flags(reg_Flags);
+}
+
+static inline void cpu8080_dump_data(void) {
+    printf("%s:\n", opcodes_ordered_names_full[curr_opcode]);
+    cpu8080_dump_registers();
+    print_disassemble(ram);
 }
 
 static inline void cpu8080_load_program(program_t* program) {
@@ -1151,15 +1178,11 @@ void cpu8080_run_program(program_t* program) {
 	cpu8080_init();
     reg_PC = program->start;
 	while(!halt) {
-        //printf("%s:\n", opcodes_ordered_names_full[curr_opcode]);
-        //cpu8080_dump_registers();
-        //print_disassemble(ram);
+        //cpu8080_dump_data();
         //printf("\n");
         cpu8080_check_interrupts();
 		cpu8080_tick();
 	}
-    printf("%s:\n", opcodes_ordered_names_full[curr_opcode]);
-    cpu8080_dump_registers();
-    print_disassemble(ram);
+    cpu8080_dump_data();
     printf("\n");
 }

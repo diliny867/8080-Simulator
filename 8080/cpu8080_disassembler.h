@@ -15,6 +15,7 @@ void print_opcode_name(char* opcode) {
 
 void print_instr_no_args(cpu8080_byte_t instr, cpu8080_short_t addr) {
 	printf("\t 0x%04hX:  ", addr);
+	//printf("0x%04hX:  ", addr);
 	print_opcode_name(opcodes_ordered_names_full[instr]);
 }
 cpu8080_byte_t print_instr(cpu8080_byte_t* ram_at, cpu8080_short_t addr) {
