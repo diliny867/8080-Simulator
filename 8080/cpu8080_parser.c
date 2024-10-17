@@ -157,10 +157,6 @@ static parse_res_e_t get_opcode_args(char** line, struct args_t* args) {
 #ifdef DEBUG_PRINT
 	printf("Parsing args: ");
 #endif
-	//args->args[0].sv.str = NULL;
-	//args->args[0].sv.len = 0;
-	//args->args[1].sv.str = NULL;
-	//args->args[1].sv.len = 0;
 	int arg_c = 0;
 	parse_res_e_t res;
 	skip_whitespace(line);
