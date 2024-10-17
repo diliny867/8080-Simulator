@@ -1133,8 +1133,9 @@ static inline void cpu8080_dump_registers(void) {
 }
 
 void cpu8080_dump_data(void) {
-    printf("%s:\n", opcodes_ordered_names_full[curr_opcode]);
+    printf("Clock cycles: %d; Last instruction: %s:\n", clock, opcodes_ordered_names_full[curr_opcode]);
     cpu8080_dump_registers();
+    printf("Disassembly:\n");
     print_disassemble(ram);
 }
 

@@ -14,10 +14,13 @@ int main(int argc, char** argv) {
 	assemble(file_in, file_out);
 
 	program_t pr = load_program("asm8080.bin");
+	printf("Loaded program of %d bytes:\n", pr.size);
 	print_program(&pr, 1);
+	printf("\n");
 
 	print_disassemble(pr.data);
-
+	printf("\n");
+	
 	cpu8080_start_program(&pr, 0, 0);
 
 	while(!cpu8080_halt()) {

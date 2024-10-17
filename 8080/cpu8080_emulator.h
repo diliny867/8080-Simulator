@@ -2,8 +2,6 @@
 
 #include "cpu8080_common.h"
 
-#include "cpu8080_assembler.h"
-
 
 #define CPU8080_INSTANT_INSTRUCTIONS
 

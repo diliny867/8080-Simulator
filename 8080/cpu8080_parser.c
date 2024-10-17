@@ -10,6 +10,12 @@
 
 //#define DEBUG_PRINT
 
+typedef enum {
+	PARSE_CONTINUE = 0,
+	PARSE_UNEXPECTED,
+	PARSE_STOP,
+} parse_res_e_t;
+
 
 static char* fgetline(char** line, size_t* len, FILE* file) {
 	size_t count = 32;
@@ -32,18 +38,12 @@ static char* fgetline(char** line, size_t* len, FILE* file) {
 	}
 	if(*len) {
 #ifdef DEBUG_PRINT
-		printf("Parsed line: |%s|\n", *line);
+		printf("Parsing line: |%s|\n", *line);
 #endif
 		return *line;
 	}
 	return NULL;
 }
-
-
-//typedef struct {
-//	bool is_imm;
-//	char* value;
-//} opcode_arg_token_t;
 
 
 static void sv_print(string_view_t sv) {
@@ -52,207 +52,198 @@ static void sv_print(string_view_t sv) {
 	}
 }
 
+static inline bool stop_on_char(char c) {
+	return c == '\0' || c == ';';
+}
 
-static char* get_label(char* line, char** label, char* label_len) {
+static inline void skip_whitespace(char** line) {
+	while(isspace(**line)) {
+		(*line)++;
+	}
+}
+
+static parse_res_e_t get_label(char** line, char** label, char* label_len) {
 #ifdef DEBUG_PRINT
 	printf("Parsing label: ");
 #endif
-	*label = line; //as it will be start of token line
+	*label = *line; //as it will be start of token line
 	*label_len = 0;
-	while(*line != '\0') {
-		if(isalpha(*line)){
-			*label = line;
-			while(isalnum(*line)){
-				line++;
+	skip_whitespace(line);
+	while(!stop_on_char(**line)) {
+		if(isalpha(**line)){
+			*label = *line;
+			while(isalnum(**line)){
+				(*line)++;
 			}
-			while(isspace(*line)) {
-				line++;
+			while(isspace(**line)) {
+				(*line)++;
 			}
-			if(*line == ':') {
-				*label_len = line - *label;
-				line++;
+			if(**line == ':') {
+				*label_len = *line - *label;
+				(*line)++;
 #ifdef DEBUG_PRINT
 				printf("label: \"");
 				string_view_t dbg__sv = {*label, *label_len};
 				sv_print(dbg__sv);
 				printf("\"");
 #endif
-				return line;
+				return PARSE_CONTINUE;
 			}
-
-			return *label;
-		}else if(!isspace(*line)) {
-			return NULL;
+			*line = *label;
+			return PARSE_CONTINUE;
+		}else if(!isspace(**line)) {
+			return PARSE_UNEXPECTED;
 		}
-		line++;
+		(*line)++;
 	}
-	return NULL;
+	return PARSE_STOP;
 }
 
-static char* get_opcode(char* line, char** op_ptr, char* op_len) {
+static parse_res_e_t get_opcode(char** line, char** op_ptr, char* op_len) {
 #ifdef DEBUG_PRINT
 	printf("Parsing opcode: ");
 #endif
 	*op_ptr = NULL;
 	*op_len = 0;
-	while(*line != '\0') {
-		if(isalpha(*line)){
-			*op_ptr = line;
-			while(isalpha(*line)){
-				line++;
+	skip_whitespace(line);
+	while(!stop_on_char(**line)) {
+		if(isalpha(**line)){
+			*op_ptr = *line;
+			while(isalpha(**line)){
+				(*line)++;
 			}
-			*op_len = line - *op_ptr;
+			*op_len = *line - *op_ptr;
 #ifdef DEBUG_PRINT
 			printf("opcode: \"");
 			string_view_t dbg__sv = {*op_ptr,*op_len};
 			sv_print(dbg__sv);
 			printf("\"");
 #endif
-			return line;
-		}else if(!isspace(*line)) {
-			return NULL;
+			return PARSE_CONTINUE;
+		}else if(!isspace(**line)) {
+			return PARSE_UNEXPECTED;
 		}
-		line++;
+		(*line)++;
 	}
-	return NULL;
+	return PARSE_STOP;
 }
 
-static char* get_immediate(char* line, unsigned short* imm) {
-	while(isspace(*line)) {
-		line++;
+static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
+	skip_whitespace(line);
+	if(stop_on_char(**line)) {
+		return PARSE_STOP;
 	}
-	if(isdigit(*line)) {
-		*imm = (unsigned short)strtol(line, NULL, 0);
-		line++;
-		if(*line == 'x' || *line == 'b') {
-			line++;
+#ifdef DEBUG_PRINT
+	printf("Parsing immediate: ");
+#endif
+	if(isdigit(**line)) {
+		*imm = (unsigned short)strtol(*line, NULL, 0);
+		(*line)++;
+		if(**line == 'x' || **line == 'b') {
+			(*line)++;
 		}
-		while(isxdigit(*line)) {
-			line++;
+		while(isxdigit(**line)) {
+			(*line)++;
 		}
-		return line;
+#ifdef DEBUG_PRINT
+		printf("%d\n", *imm);
+#endif
+		return PARSE_CONTINUE;
 	}
-	return NULL;
+	return PARSE_UNEXPECTED;
 }
 
-static char* get_opcode_args(char* line, struct args_t* args) {
+static parse_res_e_t get_opcode_args(char** line, struct args_t* args) {
 #ifdef DEBUG_PRINT
 	printf("Parsing args: ");
 #endif
-	args->fst.sv.str = NULL;
-	args->fst.sv.len = 0;
-	args->snd.sv.str = NULL;
-	args->snd.sv.len = 0;
-	union arg_u* arg = &args->fst;
+	memset(args->args, 0, sizeof(union arg_u[2]));
+	//args->args[0].sv.str = NULL;
+	//args->args[0].sv.len = 0;
+	//args->args[1].sv.str = NULL;
+	//args->args[1].sv.len = 0;
 	int arg_c = 0;
-	int cc = 0;
-	while(*line != '\0') {
-		if(isalpha(*line)){
-			arg->sv.str = line;
-			while(isalnum(*line)){
-				line++;
+	parse_res_e_t res;
+	skip_whitespace(line);
+	while(!stop_on_char(**line)) {
+		if(isalpha(**line)){
+			args->args[arg_c].sv.str = *line;
+			while(isalnum(**line)){
+				(*line)++;
 			}
-			arg->sv.len = line - arg->sv.str;
+			args->args[arg_c].sv.len = *line - args->args[arg_c].sv.str;
 #ifdef DEBUG_PRINT
 			printf("arg%d: \"", arg_c+1);
 			sv_print(arg->sv);
 			printf("\" ");
 #endif
 			if(arg_c >= 1) {
-				return line;
+				return PARSE_CONTINUE;
 			}
 			arg_c++;
-			arg = &args->snd;
-		}else if(isdigit(*line)){
+		}else if(isdigit(**line)){
 			args->val_types |= 1 << arg_c;
-			line = get_immediate(line, &arg->imm);
+			res = get_immediate(line, &args->args->imm);
 #ifdef DEBUG_PRINT
 			printf("arg%d: \"", arg_c+1);
 			printf("0x%x", arg->imm);
 			printf("\" ");
 #endif
-			if(!line) {
-				return NULL;
+			if(res == PARSE_UNEXPECTED) {
+				return res;
 			}
 			if(arg_c >= 1) {
-				return line;
+				return PARSE_CONTINUE;
 			}
 			arg_c++;
-			arg = &args->snd;
 		}else {
-			line++;
-		}
-		//else if(*line == ',' || isspace(*line)) {
-		//	if(cc == 0 && arg != &args->snd) {
-		//		return line;
-		//	}
-		//	if(cc != 0) {
-		//		return NULL;
-		//	}
-		//	cc += 1;
-		//}
-	}
-	return line;
-}
-
-static bool is_rest_error(char* line) {
-	while(*line != '\0') {
-		while(isspace(*line)) {
-			line++;
-		}
-		if(*line == ';' || *line == '\0') {
-			return false;
-		}else {
-			return true;
+			(*line)++;
 		}
 	}
-	return false;
+	return PARSE_STOP;
 }
 
-static opcode_token_t gen_error_token() {
-	opcode_token_t tok = {{NULL, 0}, {NULL, 0}, {{NULL,0},{NULL,0}, 0}};
+static parse_res_e_t is_rest_error(char* line) {
+	skip_whitespace(&line);
+	if(stop_on_char(*line)) {
+		return PARSE_STOP;
+	}
+	return PARSE_UNEXPECTED;
+}
+
+static parse_res_e_t next_token(char* line, opcode_token_t* token) {
+	parse_res_e_t res;
+
+	res = get_label(&line, &token->label.str, &token->label.len);
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+	if(res != PARSE_CONTINUE) {
+		return res;
+	}
+	res = get_opcode(&line, &token->opcode.str, &token->opcode.len);
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+	if(res != PARSE_CONTINUE) {
+		return res;
+	}
+	res = get_opcode_args(&line, &token->args);
+#ifdef DEBUG_PRINT
+	printf("\n");
+#endif
+	if(res != PARSE_CONTINUE) {
+		return res;
+	}
+
+	return is_rest_error(line);
+}
+
+static opcode_token_t* empty_token() {
+	//opcode_token_t tok = {{NULL, 0}, {NULL, 0}, {{NULL,0},{NULL,0}, 0}};
+	opcode_token_t* tok = calloc(1, sizeof(opcode_token_t));
 	return tok;
 }
-
-static bool is_error_token(opcode_token_t tok) {
-	return tok.opcode.len == 0 && tok.label.len == 0 && tok.args.fst.sv.len == 0 && tok.args.snd.sv.len == 0;
-}
-
-static opcode_token_t next_token(char* line) {
-	opcode_token_t token;
-
-	line = get_label(line, &token.label.str, &token.label.len);
-#ifdef DEBUG_PRINT
-	printf("\n");
-#endif
-	if(line == NULL) {
-		printf("Expected label or opcode\n");
-		return gen_error_token();
-	}
-	line = get_opcode(line, &token.opcode.str, &token.opcode.len);
-#ifdef DEBUG_PRINT
-	printf("\n");
-#endif
-	if(line == NULL) {
-		printf("Expected opcode\n");
-		return gen_error_token();
-	}
-	line = get_opcode_args(line, &token.args);
-#ifdef DEBUG_PRINT
-	printf("\n");
-#endif
-	if(line == NULL) {
-		printf("Expected opcode arguments\n");
-		return gen_error_token();
-	}
-	if(is_rest_error(line)) {
-		printf("Unexpected\n");
-		return gen_error_token();
-	}
-
-	return token;
-}
-
 
 tokens_out_t parse_file(FILE* file) {
 	tokens_out_t tokens_out;
@@ -262,18 +253,17 @@ tokens_out_t parse_file(FILE* file) {
 
 	char* line;
 	size_t len = 0;
+	parse_res_e_t res;
 	while(fgetline(&line, &len, file) != NULL) {
-		while(isspace(*line)) {
-			line++;
-		}
-		if(*line == ';' || *line == '\0') {
+		opcode_token_t* tok = empty_token();
+		res = next_token(line, tok);
+		if(res != PARSE_STOP) {
+#ifdef DEBUG_PRINT
+			printf("!!Res code: %d, skipping token\n", res);
+#endif
 			continue;
 		}
-		opcode_token_t tok = next_token(line);
-		if(is_error_token(tok)) {
-			continue;
-		}
-		tokens_out.tokens[tokens_out.count++] = tok;
+		tokens_out.tokens[tokens_out.count++] = *tok;
 		if(count >= tokens_out.count) {
 			count *= 2;
 			tokens_out.tokens = realloc(tokens_out.tokens, count * sizeof(opcode_token_t));

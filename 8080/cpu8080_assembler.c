@@ -4,7 +4,9 @@
 #include "cpu8080_parser.h"
 #include "cpu8080_tables.h"
 
+#include "ctype.h"
 #include "string.h"
+#include "stdlib.h"
 
 
 //#define AS_ASCII
@@ -113,7 +115,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 				if(!(token->args.val_types & 1)) {
 					int t_size = sizeof(arg_dbl_bits)/sizeof(arg_dbl_bits[0]);
 					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.fst.sv, arg_dbl_bits[j].arg)) {
+						if(tok_str_cmp(token->args.args[0].sv, arg_dbl_bits[j].arg)) {
 							opcode |= arg_dbl_bits[j].bits << arg_at;
 							break;
 						}
@@ -123,7 +125,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 				if(!(token->args.val_types & 1)) {
 					int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
 					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)) {
+						if(tok_str_cmp(token->args.args[0].sv, arg_tpl_bits[j].arg)) {
 							opcode |= arg_tpl_bits[j].bits << arg_at;
 							break;
 						}
@@ -132,13 +134,13 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			} else if(arg_bit_count == 6) {
 				int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
 				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.snd.sv, arg_tpl_bits[j].arg)){
+					if(tok_str_cmp(token->args.args[1].sv, arg_tpl_bits[j].arg)){
 						opcode |= arg_tpl_bits[j].bits << arg_at;
 						break;
 					}
 				}
 				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.fst.sv, arg_tpl_bits[j].arg)) {
+					if(tok_str_cmp(token->args.args[0].sv, arg_tpl_bits[j].arg)) {
 						opcode |= arg_tpl_bits[j].bits << (arg_at+3);
 						break;
 					}
@@ -156,15 +158,15 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			unsigned short arg_imm = 0;
 			if(arg_ep_cnt == 0) {
 				if(token->args.val_types & 1) {
-					arg_imm = token->args.fst.imm;
+					arg_imm = token->args.args[0].imm;
 				}else {
-					arg_imm = find_label_addr(token->args.fst.sv);
+					arg_imm = find_label_addr(token->args.args[0].sv);
 				}
 			}else if(arg_ep_cnt == 1) {
 				if(token->args.val_types & 2) {
-					arg_imm = token->args.snd.imm;
+					arg_imm = token->args.args[1].imm;
 				}else {
-					arg_imm = find_label_addr(token->args.snd.sv);
+					arg_imm = find_label_addr(token->args.args[1].sv);
 				}
 			}
 
@@ -246,7 +248,6 @@ program_t load_program(char* file_name_in) {
 }
 
 void print_program(program_t* program, bool bin) {
-	printf("Loaded program of %d bytes:\n", program->size);
 	if(bin) {
 		for(int i=0;i<program->size;i++) {
 			printf("0b");

@@ -16,9 +16,9 @@ typedef struct{
 		union arg_u {
 			string_view_t sv;
 			unsigned short imm;
-		};
-		union arg_u fst;
-		union arg_u snd;
+		} args[2];
+		//union arg_u fst;
+		//union arg_u snd;
 		unsigned char val_types; // 1 is imm
 	} args;
 } opcode_token_t;
