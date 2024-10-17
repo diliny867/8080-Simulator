@@ -19,7 +19,7 @@ typedef struct{
 			string_view_t sv;
 			unsigned short imm;
 		} args[2];
-		unsigned char val_types; // 1 is imm
+		//unsigned char val_types; // 1 is imm
 	} args;
 } opcode_token_t;
 

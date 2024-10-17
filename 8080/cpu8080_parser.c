@@ -136,19 +136,32 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 #ifdef DEBUG_PRINT
 	printf("Parsing immediate: ");
 #endif
+	bool negative = false;
+	if(**line == '-') {
+		negative = true;
+	}
 	if(isdigit(**line)) {
 #ifdef PARSE_AS_LEGACY_NUMBERS
 		char* num_from = *line;
+		bool only_bits = true;
 		int base = 10;
 		while(isxdigit(**line)) {
+			if(**line != '0' && **line != '1') {
+				only_bits = false;
+			}
 			(*line)++;
 		}
 		if(tolower(**line) == 'h') {
 			base = 16;
 		}else if(tolower(**line) == 'b') {
+			if(!only_bits) {
+				return PARSE_UNEXPECTED;
+			}
 			base = 2;
-		}else if(tolower(**line) != 'd' && !stop_on_char(**line) && **line != ' '){
-			return PARSE_UNEXPECTED;
+		}else if(tolower(**line) != 'd'){
+			if(!stop_on_char(**line) && **line != ' ' && **line != ','){
+				return PARSE_UNEXPECTED;
+			}
 		}
 		*imm = (unsigned short)strtol(num_from, NULL, base);
 		if(!stop_on_char(**line)) {
@@ -163,7 +176,13 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 		while(isxdigit(**line)) {
 			(*line)++;
 		}
+		if(!stop_on_char(**line) && **line != ' ' && **line != ','){
+			return PARSE_UNEXPECTED;
+		}
 #endif
+		if(negative) {
+			*imm = -*imm;
+		}
 #ifdef DEBUG_PRINT
 		printf("%d\n", *imm);
 #endif
@@ -172,7 +191,7 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 	return PARSE_UNEXPECTED;
 }
 
-static parse_res_e_t get_opcode_args(char** line, struct args_t* args) {
+static parse_res_e_t get_opcode_args(char** line, struct args_t* args) { //TODO: Parse strings line 'String'
 #ifdef DEBUG_PRINT
 	printf("Parsing args: ");
 #endif
@@ -196,7 +215,7 @@ static parse_res_e_t get_opcode_args(char** line, struct args_t* args) {
 			}
 			arg_c++;
 		}else if(isdigit(**line)){
-			args->val_types |= 1 << arg_c;
+			//args->val_types |= 1 << arg_c;
 			res = get_immediate(line, &args->args->imm);
 #ifdef DEBUG_PRINT
 			printf("arg%d: \"", arg_c+1);

@@ -109,6 +109,8 @@ static inline void file_write_short(assembler_t* a, unsigned short sh) {
 	file_write_byte(a, sh & 0xFF);
 }
 
+static bool end_assembly;
+
 static void write_token(assembler_t* a, opcode_token_t* token) {
 	if(token->label.len != 0) {
 		add_label(token->label, a->curr_addr);
@@ -117,10 +119,94 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 		return;
 	}
 
+	union arg_u* args = token->args.args;
+	string_view_t tok_opcode = token->opcode;
+
+	//Pseudo instructions
+	if(sv_str_cmp(tok_opcode, "DB")) { //TODO: Implement list arguments
+		int arg_len = args[0].sv.len;
+		if(arg_len == 0) {
+			file_write_byte(a, args[0].imm & 0xFF);
+		}else {
+			if(args[0].sv.str[0] == '\'' && args[0].sv.str[arg_len-1] == '\'' && arg_len >= 2) {
+				if(arg_len == 2) {
+					file_write_byte(a, 0);
+				}
+				for(int i=1;i<arg_len-1;i++) {
+					file_write_byte(a, args[0].sv.str[i]);
+				}
+			}else {
+				// Unexpected
+			}
+		}
+		return;
+	}else if(sv_str_cmp(tok_opcode, "DW")) { //TODO: Implement list arguments
+		int arg_len = args[0].sv.len;
+		if(arg_len == 0) {
+			file_write_short(a, args[0].imm);
+		}else {
+			if(args[0].sv.str[0] == '\'' && args[0].sv.str[arg_len-1] == '\'' && arg_len >= 2) {
+				if(arg_len == 2) {
+					file_write_short(a, 0);
+				}
+				for(int i=1;i<arg_len-1;i++) {
+					file_write_short(a, args[0].sv.str[i]);
+				}
+			}else {
+				file_write_short(a, find_label_addr(args[0].sv));
+			}
+		}
+		return;
+	}else if(sv_str_cmp(tok_opcode, "DS")) {
+		int count;
+		if(args[0].sv.len == 0) {
+			count = args[0].imm;
+		}else {
+			count = find_label_addr(args[0].sv);
+		}
+		for(int i = 0; i < count; i++) {
+			file_write_byte(a, 0);
+		}
+		return;
+	}else if(sv_str_cmp(tok_opcode, "ORG")) {
+		int count;
+		if(args[0].sv.len == 0) {
+			count = args[0].imm;
+		}else {
+			count = find_label_addr(args[0].sv);
+		}
+		for(int i = a->curr_addr; i < count; i++) {
+			file_write_byte(a, 0);
+		}
+		return;
+	}else if(sv_str_cmp(tok_opcode, "EQU")) {
+
+		return;
+	}else if(sv_str_cmp(tok_opcode, "SET")) {
+
+		return;
+	}else if(sv_str_cmp(tok_opcode, "END")) {
+		end_assembly = true;
+		return;
+	}else if(sv_str_cmp(tok_opcode, "IF")) {
+
+		return;
+	}else if(sv_str_cmp(tok_opcode, "ENDIF")) {
+
+		return;
+	}else if(sv_str_cmp(tok_opcode, "MACRO")) {
+
+		return;
+	}else if(sv_str_cmp(tok_opcode, "ENDM")) {
+
+		return;
+	}
+
+	// Normal instructions
 	int b_size = sizeof(opcodes_base)/sizeof(opcodes_base[0]);
 	for(int i=0;i<b_size;i++) {
 		opcode_base_t obt = opcodes_base[i];
-		if(sv_str_cmp(token->opcode, obt.name)) {
+		if(sv_str_cmp(tok_opcode, obt.name)) {
 			unsigned char opcode = obt.b_code;
 #ifdef DEBUG_PRINT
 			printf("opcode found: 0b");
@@ -131,19 +217,19 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			int arg_at = c_right_most_bit_at(obt.ep_mask);
 			int arr_bits_size;
 			if(arg_bit_count == 2) {
-				if(!(token->args.val_types & 1)) {
+				if(args[0].sv.len != 0) {
 					arr_bits_size = sizeof(arg_dbl_bits)/sizeof(arg_dbl_bits[0]);
-					opcode |= get_opcode_arg_bits(arg_dbl_bits , arr_bits_size, token->args.args[0].sv, arg_at);
+					opcode |= get_opcode_arg_bits(arg_dbl_bits , arr_bits_size, args[0].sv, arg_at);
 				}
 			} else if(arg_bit_count == 3) {
-				if(!(token->args.val_types & 1)) {
+				if(args[1].sv.len != 0) {
 					arr_bits_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
-					opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[0].sv, arg_at);
+					opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, args[0].sv, arg_at);
 				}
 			} else if(arg_bit_count == 6) {
 				arr_bits_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
-				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[1].sv, arg_at);
-				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[0].sv, arg_at + 3);
+				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, args[1].sv, arg_at);
+				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, args[0].sv, arg_at + 3);
 			}
 #ifdef DEBUG_PRINT
 			printf("opcode final: 0b");
@@ -155,16 +241,16 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			int op_fin_len = opcodes_ordered_data[opcode].len - 1;
 			unsigned short arg_imm = 0;
 			if(arg_ep_cnt == 0) {
-				if(token->args.val_types & 1) {
-					arg_imm = token->args.args[0].imm;
+				if(args[0].sv.len == 0) {
+					arg_imm = args[0].imm;
 				}else {
-					arg_imm = find_label_addr(token->args.args[0].sv);
+					arg_imm = find_label_addr(args[0].sv);
 				}
 			}else if(arg_ep_cnt == 1) {
-				if(token->args.val_types & 2) {
-					arg_imm = token->args.args[1].imm;
+				if(args[1].sv.len == 0) {
+					arg_imm = args[1].imm;
 				}else {
-					arg_imm = find_label_addr(token->args.args[1].sv);
+					arg_imm = find_label_addr(args[1].sv);
 				}
 			}
 
@@ -194,11 +280,12 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 }
 
 static void write_tokens(assembler_t* a) {
+	end_assembly = false;
 	tokens_out_t tokens = a->tokens;
 #ifdef DEBUG_PRINT
 	printf("\n");
 #endif
-	for(int i = 0; i < tokens.count; i++) {
+	for(int i = 0; i < tokens.count && !end_assembly; i++) {
 #ifdef DEBUG_PRINT
 		printf("Writing token%d: ", i);
 		sv_print(tokens.tokens[i].opcode);
