@@ -157,7 +157,6 @@ static parse_res_e_t get_opcode_args(char** line, struct args_t* args) {
 #ifdef DEBUG_PRINT
 	printf("Parsing args: ");
 #endif
-	memset(args->args, 0, sizeof(union arg_u[2]));
 	//args->args[0].sv.str = NULL;
 	//args->args[0].sv.len = 0;
 	//args->args[1].sv.str = NULL;
@@ -239,9 +238,8 @@ static parse_res_e_t next_token(char* line, opcode_token_t* token) {
 	return is_rest_error(line);
 }
 
-static opcode_token_t* empty_token() {
-	//opcode_token_t tok = {{NULL, 0}, {NULL, 0}, {{NULL,0},{NULL,0}, 0}};
-	opcode_token_t* tok = calloc(1, sizeof(opcode_token_t));
+static opcode_token_t empty_token() {
+	opcode_token_t tok = {0};
 	return tok;
 }
 
@@ -255,15 +253,15 @@ tokens_out_t parse_file(FILE* file) {
 	size_t len = 0;
 	parse_res_e_t res;
 	while(fgetline(&line, &len, file) != NULL) {
-		opcode_token_t* tok = empty_token();
-		res = next_token(line, tok);
+		opcode_token_t tok = empty_token();
+		res = next_token(line, &tok);
 		if(res != PARSE_STOP) {
 #ifdef DEBUG_PRINT
 			printf("!!Res code: %d, skipping token\n", res);
 #endif
 			continue;
 		}
-		tokens_out.tokens[tokens_out.count++] = *tok;
+		tokens_out.tokens[tokens_out.count++] = tok;
 		if(count >= tokens_out.count) {
 			count *= 2;
 			tokens_out.tokens = realloc(tokens_out.tokens, count * sizeof(opcode_token_t));
