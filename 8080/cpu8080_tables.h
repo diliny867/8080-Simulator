@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cpu8080_common.h"
 
 // flag register bits
 #define S_BIT (0x80)
@@ -21,14 +22,9 @@
 typedef struct {
 	char arg[3];
 	char bits;
-} arg_dbl_bits_t;
-extern arg_dbl_bits_t arg_dbl_bits[8];
-
-typedef struct {
-	char arg[3];
-	char bits;
-} arg_tpl_t;
-extern arg_tpl_t arg_tpl_bits[16];
+} arg_bits_t;
+extern arg_bits_t arg_dbl_bits[8];
+extern arg_bits_t arg_tpl_bits[16];
 
 typedef struct {
 	char* name;

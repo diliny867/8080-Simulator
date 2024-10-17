@@ -61,7 +61,7 @@ static int clamp(int val, int min, int max) {
 	return val;
 }
 
-static bool tok_str_cmp(string_view_t s1, char* s2) {
+static bool sv_str_cmp(string_view_t s1, char* s2) {
 	int i;
 	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
 		if(tolower(s1.str[i]) != tolower(s2[i])) {
@@ -84,6 +84,15 @@ static int c_right_most_bit_at(unsigned char c) {
 	return 0;
 }
 
+static unsigned char get_opcode_arg_bits(arg_bits_t* arr, int size, string_view_t sv, int shift) {
+	for(int i=0; i<size; i++) { 
+		if(sv_str_cmp(sv, arr[i].arg)) {
+			return arr[i].bits << shift;
+		}
+	}
+	return 0;
+}
+
 typedef struct {
 	FILE* fout;
 	FILE* fin;
@@ -91,8 +100,16 @@ typedef struct {
 	unsigned short curr_addr;
 } assembler_t;
 
+static inline void file_write_byte(assembler_t* a, unsigned char byte) {
+	fputc(byte, a->fout);
+	a->curr_addr++;
+}
+static inline void file_write_short(assembler_t* a, unsigned short sh) {
+	file_write_byte(a, (sh >> 8) & 0xFF);
+	file_write_byte(a, sh & 0xFF);
+}
+
 static void write_token(assembler_t* a, opcode_token_t* token) {
-	FILE* file = a->fout;
 	if(token->label.len != 0) {
 		add_label(token->label, a->curr_addr);
 	}
@@ -102,7 +119,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 	}
 	for(int i=0;i<b_size;i++) {
 		opcode_base_t obt = opcodes_base[i];
-		if(tok_str_cmp(token->opcode, obt.name)) {
+		if(sv_str_cmp(token->opcode, obt.name)) {
 			unsigned char opcode = obt.b_code;
 #ifdef DEBUG_PRINT
 			printf("opcode found: 0b");
@@ -111,48 +128,28 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 #endif
 			int arg_bit_count = c_bit_count(obt.ep_mask);
 			int arg_at = c_right_most_bit_at(obt.ep_mask);
+			int arr_bits_size;
 			if(arg_bit_count == 2) {
 				if(!(token->args.val_types & 1)) {
-					int t_size = sizeof(arg_dbl_bits)/sizeof(arg_dbl_bits[0]);
-					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.args[0].sv, arg_dbl_bits[j].arg)) {
-							opcode |= arg_dbl_bits[j].bits << arg_at;
-							break;
-						}
-					}
+					arr_bits_size = sizeof(arg_dbl_bits)/sizeof(arg_dbl_bits[0]);
+					opcode |= get_opcode_arg_bits(arg_dbl_bits , arr_bits_size, token->args.args[0].sv, arg_at);
 				}
 			} else if(arg_bit_count == 3) {
 				if(!(token->args.val_types & 1)) {
-					int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
-					for(int j=0; j<t_size; j++) {
-						if(tok_str_cmp(token->args.args[0].sv, arg_tpl_bits[j].arg)) {
-							opcode |= arg_tpl_bits[j].bits << arg_at;
-							break;
-						}
-					}
+					arr_bits_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
+					opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[0].sv, arg_at);
 				}
 			} else if(arg_bit_count == 6) {
-				int t_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
-				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.args[1].sv, arg_tpl_bits[j].arg)){
-						opcode |= arg_tpl_bits[j].bits << arg_at;
-						break;
-					}
-				}
-				for(int j=0; j<t_size; j++) {
-					if(tok_str_cmp(token->args.args[0].sv, arg_tpl_bits[j].arg)) {
-						opcode |= arg_tpl_bits[j].bits << (arg_at+3);
-						break;
-					}
-				}
+				arr_bits_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
+				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[1].sv, arg_at);
+				opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, token->args.args[0].sv, arg_at + 3);
 			}
 #ifdef DEBUG_PRINT
 			printf("opcode final: 0b");
 			print_char_bin(opcode);
 			printf("\n");
 #endif
-			fputc(opcode, file);
-			a->curr_addr++;
+			file_write_byte(a, opcode);
 			int arg_ep_cnt = clamp(arg_bit_count/2, 0, 2);
 			int op_fin_len = opcodes_ordered_data[opcode].len - 1;
 			unsigned short arg_imm = 0;
@@ -176,8 +173,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 				print_char_bin(arg_imm & 0xFF);
 				printf("\n");
 #endif
-				fputc((unsigned char)arg_imm, file);
-				a->curr_addr++;
+				file_write_byte(a, (unsigned char)arg_imm);
 			}else if(op_fin_len == 2){
 #ifdef DEBUG_PRINT
 				printf("imm arg found: 0x%X = 0b", arg_imm);
@@ -186,9 +182,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 				print_char_bin(arg_imm & 0xFF);
 				printf("\n");
 #endif
-				fputc((unsigned char)(arg_imm >> 8), file);
-				fputc((unsigned char)arg_imm, file);
-				a->curr_addr+=2;
+				file_write_short(a, arg_imm);
 			}
 			break;
 		}

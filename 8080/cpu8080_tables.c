@@ -1,6 +1,6 @@
 #include "cpu8080_tables.h"
 
-arg_dbl_bits_t arg_dbl_bits[8] = {
+arg_bits_t arg_dbl_bits[8] = {
 	{"BC", 0b00},
 	{"B", 0b00},
 	{"DE", 0b01},
@@ -11,7 +11,7 @@ arg_dbl_bits_t arg_dbl_bits[8] = {
 	{"PSW", 0b11}
 };
 
-arg_tpl_t arg_tpl_bits[16] = {
+arg_bits_t arg_tpl_bits[16] = {
 	{"A", 0b111},
 	{"B", 0b000},
 	{"C", 0b001},
