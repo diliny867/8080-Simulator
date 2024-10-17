@@ -4,6 +4,8 @@
 #include "stdio.h"
 
 
+//#define PARSE_AS_LEGACY_NUMBERS
+
 typedef struct {
 	char* str;
 	unsigned char len;

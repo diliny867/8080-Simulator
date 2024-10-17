@@ -113,10 +113,11 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 	if(token->label.len != 0) {
 		add_label(token->label, a->curr_addr);
 	}
-	int b_size = sizeof(opcodes_base)/sizeof(opcodes_base[0]);
 	if(token->opcode.len == 0) {
 		return;
 	}
+
+	int b_size = sizeof(opcodes_base)/sizeof(opcodes_base[0]);
 	for(int i=0;i<b_size;i++) {
 		opcode_base_t obt = opcodes_base[i];
 		if(sv_str_cmp(token->opcode, obt.name)) {

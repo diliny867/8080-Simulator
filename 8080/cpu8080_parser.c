@@ -137,6 +137,24 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 	printf("Parsing immediate: ");
 #endif
 	if(isdigit(**line)) {
+#ifdef PARSE_AS_LEGACY_NUMBERS
+		char* num_from = *line;
+		int base = 10;
+		while(isxdigit(**line)) {
+			(*line)++;
+		}
+		if(tolower(**line) == 'h') {
+			base = 16;
+		}else if(tolower(**line) == 'b') {
+			base = 2;
+		}else if(tolower(**line) != 'd' && !stop_on_char(**line) && **line != ' '){
+			return PARSE_UNEXPECTED;
+		}
+		*imm = (unsigned short)strtol(num_from, NULL, base);
+		if(!stop_on_char(**line)) {
+			(*line)++;
+		}
+#else
 		*imm = (unsigned short)strtol(*line, NULL, 0);
 		(*line)++;
 		if(**line == 'x' || **line == 'b') {
@@ -145,6 +163,7 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 		while(isxdigit(**line)) {
 			(*line)++;
 		}
+#endif
 #ifdef DEBUG_PRINT
 		printf("%d\n", *imm);
 #endif
