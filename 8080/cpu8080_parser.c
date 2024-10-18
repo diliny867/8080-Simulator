@@ -8,8 +8,6 @@
 #include "stdbool.h"
 
 
-//#define DEBUG_PRINT
-
 typedef enum {
 	PARSE_CONTINUE = 0,
 	PARSE_UNEXPECTED,
@@ -46,10 +44,24 @@ static char* fgetline(char** line, size_t* len, FILE* file) {
 }
 
 
-static void sv_print(string_view_t sv) {
+void sv_print(string_view_t sv) {
 	for(int i = 0; i < sv.len; i++) {
 		putchar(sv.str[i]);
 	}
+}
+bool sv_cmp(string_view_t sv1, string_view_t sv2) {
+	if(sv1.len != sv2.len) {
+		return false;
+	}
+	if(sv1.len == 0) {
+		return sv1.str == sv2.str;
+	}
+	for(int i=0;i<sv1.len;i++) {
+		if(sv1.str[i] != sv2.str[i]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 static inline bool stop_on_char(char c) {
@@ -191,44 +203,47 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 	return PARSE_UNEXPECTED;
 }
 
-static parse_res_e_t get_opcode_args(char** line, struct args_t* args) { //TODO: Parse strings line 'String'
+static parse_res_e_t get_opcode_args(char** line, args_t* args) { //TODO: Parse strings line 'String'
 #ifdef DEBUG_PRINT
 	printf("Parsing args: ");
 #endif
-	int arg_c = 0;
+	int arg_cap = 2;
+	args->args = calloc(arg_cap, sizeof(arg_u));
+	args->count = 0;
 	parse_res_e_t res;
 	skip_whitespace(line);
 	while(!stop_on_char(**line)) {
 		if(isalpha(**line)){
-			args->args[arg_c].sv.str = *line;
+			if(args->count >= arg_cap) {
+				arg_cap *= 2;
+				args->args = realloc(args->args, sizeof(arg_u) * arg_cap);
+			}
+			args->args[args->count].sv.str = *line;
 			while(isalnum(**line)){
 				(*line)++;
 			}
-			args->args[arg_c].sv.len = *line - args->args[arg_c].sv.str;
+			args->args[args->count].sv.len = *line - args->args[args->count].sv.str;
 #ifdef DEBUG_PRINT
-			printf("arg%d: \"", arg_c+1);
-			sv_print(arg->sv);
+			printf("arg%d: \"", args->count+1);
+			sv_print(args->args[args->count].sv);
 			printf("\" ");
 #endif
-			if(arg_c >= 1) {
-				return PARSE_CONTINUE;
-			}
-			arg_c++;
+			args->count++;
 		}else if(isdigit(**line)){
-			//args->val_types |= 1 << arg_c;
-			res = get_immediate(line, &args->args->imm);
+			if(args->count >= arg_cap) {
+				arg_cap *= 2;
+				args->args = realloc(args->args, sizeof(arg_u) * arg_cap);
+			}
+			res = get_immediate(line, &args->args[args->count].imm);
 #ifdef DEBUG_PRINT
-			printf("arg%d: \"", arg_c+1);
-			printf("0x%x", arg->imm);
+			printf("arg%d: \"", args->count+1);
+			printf("0x%x", args->args[args->count].imm);
 			printf("\" ");
 #endif
 			if(res == PARSE_UNEXPECTED) {
 				return res;
 			}
-			if(arg_c >= 1) {
-				return PARSE_CONTINUE;
-			}
-			arg_c++;
+			args->count++;
 		}else {
 			(*line)++;
 		}
@@ -279,14 +294,18 @@ static opcode_token_t empty_token() {
 
 tokens_out_t parse_file(FILE* file) {
 	tokens_out_t tokens_out;
-	int count = 64;
+	int tokens_cap = 4;
 	tokens_out.count = 0;
-	tokens_out.tokens = malloc(count * sizeof(opcode_token_t));
+	tokens_out.tokens = malloc(tokens_cap * sizeof(opcode_token_t));
 
 	char* line;
 	size_t len = 0;
 	parse_res_e_t res;
 	while(fgetline(&line, &len, file) != NULL) {
+		skip_whitespace(&line);
+		if(stop_on_char(*line)) {
+			continue;
+		}
 		opcode_token_t tok = empty_token();
 		res = next_token(line, &tok);
 		if(res != PARSE_STOP) {
@@ -296,9 +315,9 @@ tokens_out_t parse_file(FILE* file) {
 			continue;
 		}
 		tokens_out.tokens[tokens_out.count++] = tok;
-		if(count >= tokens_out.count) {
-			count *= 2;
-			tokens_out.tokens = realloc(tokens_out.tokens, count * sizeof(opcode_token_t));
+		if(tokens_cap >= tokens_out.count) {
+			tokens_cap *= 2;
+			tokens_out.tokens = realloc(tokens_out.tokens, tokens_cap * sizeof(opcode_token_t));
 		}
 	}
 
@@ -309,17 +328,14 @@ tokens_out_t parse_file(FILE* file) {
 		sv_print(tokens_out.tokens[i].label);
 		printf(" Opcode: ");
 		sv_print(tokens_out.tokens[i].opcode);
-		printf(" Args: fst: ");
-		if(tokens_out.tokens[i].args.fst.sv.len){
-			sv_print(tokens_out.tokens[i].args.fst.sv);
-		}else {
-			printf("0x%X", tokens_out.tokens[i].args.fst.imm);
-		}
-		printf(" snd: ");
-		if(tokens_out.tokens[i].args.snd.sv.len){
-			sv_print(tokens_out.tokens[i].args.snd.sv);
-		}else {
-			printf("0x%X", tokens_out.tokens[i].args.snd.imm);
+		printf(" Args: %d: ", tokens_out.tokens[i].args.count);
+		for(int j=0;j<tokens_out.tokens[i].args.count; j++) {
+			printf("%d: ", j);
+			if(tokens_out.tokens[i].args.args[j].sv.len){
+				sv_print(tokens_out.tokens[i].args.args[j].sv);
+			}else {
+				printf("0x%X", tokens_out.tokens[i].args.args[j].imm);
+			}
 		}
 		printf("\n");
 	}
