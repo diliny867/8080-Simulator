@@ -4,5 +4,5 @@
 
 ## Parser: working
 ### Left to implement
-- `EQU`, `SET`, `IF`, `ENDIF`, `MACRO`, `ENDM` instructions
+- `EQU`, `SET`, `IF`, `ENDIF`, `MACRO`, `ENDM` special prepass instructions
 - Maybe something I dont know about
