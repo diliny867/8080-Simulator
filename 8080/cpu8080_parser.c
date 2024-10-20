@@ -16,31 +16,26 @@ typedef enum {
 
 
 static char* fgetline(char** line, size_t* len, FILE* file) {
-	size_t count = 32;
-	//if(*line = NULL) {
-	//	*line = malloc(count * sizeof(char));
-	//} else {
-	//	*line = realloc(*line, count * sizeof(char));
-	//}
-	*line = malloc(count * sizeof(char));
+	size_t cap = 32;
+	*line = malloc(cap * sizeof(char));
 	*len = 0;
-	while(fgets(*line + *len, count - *len, file) != NULL) {
-		size_t size = strlen(*line + *len);
-		*len += size;
-		if((*line)[size - 1] == '\n') {
-			(*line)[size - 1] = '\0';
-			break;
+	int c;
+	while((c = fgetc(file)) != EOF && c != '\n') {
+		*(*line + (*len)++) = c;
+		if(*len >= cap) {
+			cap *= 2;
+			*line = realloc(*line, cap);
 		}
-		count *= 2;
-		*line = realloc(*line, count);
 	}
-	if(*len) {
+	*(*line + *len) = '\0';
+	if(*len == 0 && c == EOF) {
+		free(*line);
+		return NULL;
+	}
 #ifdef DEBUG_PRINT
-		printf("Parsing line: |%s|\n", *line);
+	printf("Parsing line: |%s|\n", *line);
 #endif
-		return *line;
-	}
-	return NULL;
+	return *line;
 }
 
 
