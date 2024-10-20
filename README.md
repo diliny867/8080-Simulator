@@ -4,8 +4,5 @@
 
 ## Parser: working
 ### Left to implement
-- Special instructions
-- Numbers defined with D, H, B at its end
-- Negative numbers
-- Data fields
+- `EQU`, `SET`, `IF`, `ENDIF`, `MACRO`, `ENDM` special prepass instructions
 - Maybe something I dont know about
