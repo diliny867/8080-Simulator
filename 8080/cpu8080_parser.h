@@ -6,19 +6,19 @@
 
 //#define DEBUG_PRINT
 
-//#define PARSE_AS_LEGACY_NUMBERS
+#define PARSE_AS_LEGACY_NUMBERS
 
 typedef struct {
 	char* str;
 	unsigned char len;
 } string_view_t;
 
-typedef union {
+typedef struct {
 	string_view_t sv;
-	unsigned short imm;
-} arg_u;
+	bool is_imm;
+} arg_v_t;
 typedef struct{
-	arg_u* args;
+	arg_v_t* args;
 	unsigned short count;
 } args_t;
 typedef struct{
@@ -34,5 +34,7 @@ typedef struct {
 
 void sv_print(string_view_t sv);
 bool sv_cmp(string_view_t sv1, string_view_t sv2);
+
+int parse_immediate(char* line);
 
 tokens_out_t parse_file(FILE* file);

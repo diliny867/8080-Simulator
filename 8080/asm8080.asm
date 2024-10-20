@@ -1,6 +1,9 @@
 
 DB 'Hi'
-ADI 0x03
+
+ORG 100H
+
+ADI 03H
 MOV B, A
 INR B
 NOP
