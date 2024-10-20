@@ -135,7 +135,7 @@ static parse_res_e_t get_opcode(char** line, char** op_ptr, char* op_len) {
 	return PARSE_STOP;
 }
 
-static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
+static parse_res_e_t get_immediate(char** line, arg_u* arg) {
 	skip_whitespace(line);
 	if(stop_on_char(**line)) {
 		return PARSE_STOP;
@@ -175,7 +175,7 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 			(*line)++;
 		}
 #else
-		*imm = (unsigned short)strtol(*line, NULL, 0);
+		arg->imm = (unsigned short)strtol(*line, NULL, 0);
 		(*line)++;
 		if(**line == 'x' || **line == 'b') {
 			(*line)++;
@@ -188,14 +188,52 @@ static parse_res_e_t get_immediate(char** line, unsigned short* imm) {
 		}
 #endif
 		if(negative) {
-			*imm = -*imm;
+			arg->imm = -arg->imm;
 		}
 #ifdef DEBUG_PRINT
-		printf("%d\n", *imm);
+		printf("%d\n", arg->imm);
 #endif
 		return PARSE_CONTINUE;
 	}
 	return PARSE_UNEXPECTED;
+}
+
+static bool isidentch(char c) {
+	return isalnum(c) || c == '_';
+}
+static parse_res_e_t get_identifier(char** line, arg_u* arg) {
+	skip_whitespace(line);
+	if(stop_on_char(**line)) {
+		return PARSE_STOP;
+	}
+	if(!isidentch(**line)) {
+		return PARSE_UNEXPECTED;
+	}
+	arg->sv.str = *line;
+	while(isidentch(**line)) {
+		(*line)++;
+	}
+	arg->sv.len = *line - arg->sv.str;
+	return PARSE_CONTINUE;
+}
+
+static parse_res_e_t get_string(char** line, arg_u* arg) {
+	skip_whitespace(line);
+	if(stop_on_char(**line)) {
+		return PARSE_STOP;
+	}
+	if(**line != '\'') {
+		return PARSE_UNEXPECTED;
+	}
+	arg->sv.str = *line;
+	do {
+		(*line)++;
+	} while (**line != '\'' && !stop_on_char(**line));
+	if(**line == '\'') {
+		(*line)++;
+	}
+	arg->sv.len = *line - arg->sv.str;
+	return PARSE_CONTINUE;
 }
 
 static parse_res_e_t get_opcode_args(char** line, args_t* args) { //TODO: Parse strings line 'String'
@@ -208,37 +246,28 @@ static parse_res_e_t get_opcode_args(char** line, args_t* args) { //TODO: Parse 
 	parse_res_e_t res;
 	skip_whitespace(line);
 	while(!stop_on_char(**line)) {
-		if(isalpha(**line)){
+		if(isalpha(**line) || isdigit(**line) || **line == '\''){
 			if(args->count >= arg_cap) {
 				arg_cap *= 2;
 				args->args = realloc(args->args, sizeof(arg_u) * arg_cap);
 			}
-			args->args[args->count].sv.str = *line;
-			while(isalnum(**line)){
-				(*line)++;
+			if(isalpha(**line)){
+				res = get_identifier(line, &args->args[args->count++]);
 			}
-			args->args[args->count].sv.len = *line - args->args[args->count].sv.str;
-#ifdef DEBUG_PRINT
-			printf("arg%d: \"", args->count+1);
-			sv_print(args->args[args->count].sv);
-			printf("\" ");
-#endif
-			args->count++;
-		}else if(isdigit(**line)){
-			if(args->count >= arg_cap) {
-				arg_cap *= 2;
-				args->args = realloc(args->args, sizeof(arg_u) * arg_cap);
+			if(isdigit(**line)) {
+				res = get_immediate(line, &args->args[args->count++]);
 			}
-			res = get_immediate(line, &args->args[args->count].imm);
+			if(**line == '\'') {
+				res = get_string(line, &args->args[args->count++]);
+			}
 #ifdef DEBUG_PRINT
-			printf("arg%d: \"", args->count+1);
-			printf("0x%x", args->args[args->count].imm);
+			printf("arg%d: \"", args->count);
+			sv_print(args->args[args->count-1].sv);
 			printf("\" ");
 #endif
 			if(res == PARSE_UNEXPECTED) {
 				return res;
 			}
-			args->count++;
 		}else {
 			(*line)++;
 		}
