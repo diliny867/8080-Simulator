@@ -284,11 +284,11 @@ static void write_tokens(assembler_t* a) {
 	}
 }
 
-static void free_tokens_strings(assembler_t* a) {
-	for(int i =0; i<a->tokens.count; i++) {
-		free(a->tokens.tokens[i].label.str);
-	}
-}
+//static void free_tokens_strings(assembler_t* a) {
+//	for(int i =0; i<a->tokens.count; i++) {
+//		free(a->tokens.tokens[i].label.str);
+//	}
+//}
 
 void assemble(char* file_name_in, char* file_name_out) {
 	assembler_t a;
@@ -304,7 +304,7 @@ void assemble(char* file_name_in, char* file_name_out) {
 
 	write_tokens(&a);
 
-	free_tokens_strings(&a);
+	//free_tokens_strings(&a);
 
 	fclose(a.fout);
 	fclose(a.fin);
