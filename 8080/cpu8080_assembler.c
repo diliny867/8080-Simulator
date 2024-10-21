@@ -68,6 +68,7 @@ typedef struct {
 typedef struct {
 	FILE* fout;
 	FILE* fin;
+	arena_t* arena;
 	tokens_out_t tokens;
 	unsigned short curr_addr;
 	label_t* labels;
@@ -95,8 +96,8 @@ static int find_label_index(assembler_t* a, string_view_t label) {
 }
 static void add_label(assembler_t* a, string_view_t label, unsigned short addr) {
 	if(a->label_count >= a->label_cap) {
+		a->labels = arena_realloc(a->arena, a->labels, sizeof(label_t) * a->label_cap, sizeof(label_t) * a->label_cap * 2);
 		a->label_cap *= 2;
-		a->labels = realloc(a->labels, sizeof(label_t) * a->label_cap);
 	}
 	if(find_label_index(a, label) != -1) {
 		return; // Lable redefinition
@@ -284,27 +285,22 @@ static void write_tokens(assembler_t* a) {
 	}
 }
 
-//static void free_tokens_strings(assembler_t* a) {
-//	for(int i =0; i<a->tokens.count; i++) {
-//		free(a->tokens.tokens[i].label.str);
-//	}
-//}
-
 void assemble(char* file_name_in, char* file_name_out) {
 	assembler_t a;
+	a.arena = arena_new();
 	a.curr_addr = 0;
 	a.label_count = 0;
 	a.label_cap = 16;
-	a.labels = malloc(sizeof(label_t) * a.label_cap);
+	a.labels = arena_alloc(a.arena, sizeof(label_t) * a.label_cap);
 	a.force_end = false;
 	fopen_s(&a.fin, file_name_in, "r");
 	fopen_s(&a.fout, file_name_out, "w");
 
-	a.tokens = parse_file(a.fin);
+	a.tokens = parse_file(a.arena, a.fin);
 
 	write_tokens(&a);
 
-	//free_tokens_strings(&a);
+	arena_free(a.arena);
 
 	fclose(a.fout);
 	fclose(a.fin);

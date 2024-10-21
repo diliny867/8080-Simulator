@@ -33,6 +33,9 @@
     <ClCompile Include="cpu8080_tables.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="arena.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpu8080_emulator.h">
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpu8080_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="arena.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

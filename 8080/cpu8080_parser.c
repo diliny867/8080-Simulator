@@ -15,21 +15,20 @@ typedef enum {
 } parse_res_e_t;
 
 
-static char* fgetline(char** line, size_t* len, FILE* file) {
+static char* fgetline(arena_t* a, char** line, size_t* len, FILE* file) {
 	size_t cap = 32;
-	*line = malloc(cap * sizeof(char));
+	*line = arena_alloc(a, cap);
 	*len = 0;
 	int c;
 	while((c = fgetc(file)) != EOF && c != '\n') {
 		*(*line + (*len)++) = c;
 		if(*len >= cap) {
+			*line = arena_realloc(a, *line, cap, cap * 2);
 			cap *= 2;
-			*line = realloc(*line, cap);
 		}
 	}
 	*(*line + *len) = '\0';
 	if(*len == 0 && c == EOF) {
-		free(*line);
 		return NULL;
 	}
 #ifdef DEBUG_PRINT
@@ -369,16 +368,17 @@ static opcode_token_t empty_token() {
 	return tok;
 }
 
-tokens_out_t parse_file(FILE* file) {
+tokens_out_t parse_file(arena_t* arena, FILE* file) {
 	tokens_out_t tokens_out;
 	int tokens_cap = 4;
 	tokens_out.count = 0;
-	tokens_out.tokens = malloc(tokens_cap * sizeof(opcode_token_t));
+	tokens_out.arena = arena;
+	tokens_out.tokens = arena_alloc(tokens_out.arena, tokens_cap * sizeof(opcode_token_t));
 
 	char* line;
 	size_t len = 0;
 	parse_res_e_t res;
-	while(fgetline(&line, &len, file) != NULL) {
+	while(fgetline(tokens_out.arena, &line, &len, file) != NULL) {
 		skip_whitespace(&line);
 		if(stop_on_char(*line)) {
 			continue;
@@ -392,9 +392,9 @@ tokens_out_t parse_file(FILE* file) {
 			continue;
 		}
 		tokens_out.tokens[tokens_out.count++] = tok;
-		if(tokens_cap >= tokens_out.count) {
+		if(tokens_out.count >= tokens_cap) {
+			tokens_out.tokens = arena_realloc(tokens_out.arena, tokens_out.tokens, tokens_cap * sizeof(opcode_token_t), tokens_cap * sizeof(opcode_token_t) * 2);
 			tokens_cap *= 2;
-			tokens_out.tokens = realloc(tokens_out.tokens, tokens_cap * sizeof(opcode_token_t));
 		}
 	}
 

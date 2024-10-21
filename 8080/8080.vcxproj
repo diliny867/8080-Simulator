@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="arena.c" />
     <ClCompile Include="cpu8080_assembler.c" />
     <ClCompile Include="cpu8080_disassembler.c" />
     <ClCompile Include="cpu8080_emulator.c" />
@@ -139,6 +140,7 @@
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="arena.h" />
     <ClInclude Include="cpu8080_common.h" />
     <ClInclude Include="cpu8080_emulator.h" />
     <ClInclude Include="cpu8080_assembler.h" />

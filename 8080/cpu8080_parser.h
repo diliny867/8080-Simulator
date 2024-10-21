@@ -3,6 +3,7 @@
 
 #include "stdio.h"
 #include "stdbool.h"
+#include "arena.h"
 
 //#define DEBUG_PRINT
 
@@ -28,6 +29,7 @@ typedef struct{
 } opcode_token_t;
 
 typedef struct {
+	arena_t* arena;
 	opcode_token_t* tokens;
 	int count;
 } tokens_out_t;
@@ -37,4 +39,4 @@ bool sv_cmp(string_view_t sv1, string_view_t sv2);
 
 int parse_immediate(char* line);
 
-tokens_out_t parse_file(FILE* file);
+tokens_out_t parse_file(arena_t* arena, FILE* file);
