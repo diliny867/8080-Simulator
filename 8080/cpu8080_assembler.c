@@ -112,7 +112,6 @@ static void push_label(assembler_t* a, string_view_t label, unsigned short addr,
 	a->label_count++;
 }
 static void add_label(assembler_t* a, string_view_t label, unsigned short addr) {
-	if(label.str == NULL){ return; }
 	int index = find_label_index(a, label);
 	if(index != -1) {
 		if(a->labels[index].set){
@@ -125,8 +124,7 @@ static void add_label(assembler_t* a, string_view_t label, unsigned short addr) 
 	push_label(a, label, addr, true);
 }
 
-static int queue_label_write(assembler_t* a, string_view_t label) {
-	if(label.str == NULL){ return 0; }
+static int queue_or_get_label(assembler_t* a, string_view_t label) {
 	int index = find_label_index(a, label);
 	label_t* lab;
 	if(index == -1) {
@@ -134,6 +132,9 @@ static int queue_label_write(assembler_t* a, string_view_t label) {
 		lab = &a->labels[a->label_count-1];
 	}else {
 		lab = &a->labels[index];
+		if(lab->set) {
+			return lab->addr;
+		}
 	}
 	if(lab->queued_count >= lab->queued_cap) {
 		lab->queued = arena_realloc(a->arena, lab->queued, lab->queued_cap * sizeof(unsigned short), lab->queued_cap * sizeof(unsigned short) * 2);
@@ -215,7 +216,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 						file_write_short(a, args[i].sv.str[j]);
 					}
 				} else {
-					file_write_short(a, queue_label_write(a, args[i].sv));
+					file_write_short(a, queue_or_get_label(a, args[i].sv));
 				}
 			}
 		}
@@ -288,27 +289,27 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			if(arg_ep_cnt == 0) {
 				if(args[0].is_imm) {
 					arg_imm = parse_immediate(args[0].sv.str);
-				}else {
-					arg_imm = queue_label_write(a, args[0].sv);
+				}else if(op_fin_len >= 2){
+					arg_imm = queue_or_get_label(a, args[0].sv);
 				}
 			}else if(arg_ep_cnt == 1) {
 				if(args[1].is_imm) {
 					arg_imm = parse_immediate(args[1].sv.str);
-				}else {
-					arg_imm = queue_label_write(a, args[1].sv);
+				}else if(op_fin_len >= 2){
+					arg_imm = queue_or_get_label(a, args[1].sv);
 				}
 			}
 
 			if(op_fin_len == 1) {
 #ifdef DEBUG_PRINT
-				printf("imm arg found: 0x%X = 0b", arg_imm & 0xFF);
+				printf("byte imm arg found: 0x%X = 0b", arg_imm & 0xFF);
 				print_char_bin(arg_imm & 0xFF);
 				printf("\n");
 #endif
 				file_write_byte(a, (unsigned char)arg_imm);
 			}else if(op_fin_len == 2){
 #ifdef DEBUG_PRINT
-				printf("imm arg found: 0x%X = 0b", arg_imm);
+				printf("short imm arg found: 0x%X = 0b", arg_imm);
 				print_char_bin((arg_imm & 0xFF00) >> 8);
 				printf(" 0b");
 				print_char_bin(arg_imm & 0xFF);

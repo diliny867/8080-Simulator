@@ -7,7 +7,7 @@
 
 //#define DEBUG_PRINT
 
-#define PARSE_AS_LEGACY_NUMBERS
+//#define PARSE_AS_LEGACY_NUMBERS
 
 typedef struct {
 	char* str;

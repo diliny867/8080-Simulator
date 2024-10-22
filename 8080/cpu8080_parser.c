@@ -301,12 +301,16 @@ static parse_res_e_t get_opcode_args(char** line, args_t* args) {
 				args->args = realloc(args->args, sizeof(arg_v_t) * arg_cap);
 			}
 			args->args[args->count].is_imm = false;
-			if(isalpha(**line)){
-				res = get_identifier(line, &args->args[args->count]);
-			}
+#ifdef PARSE_AS_LEGACY_NUMBERS
+			if(isxdigit(**line)) {
+#else
 			if(isdigit(**line)) {
+#endif
 				res = get_immediate(line, &args->args[args->count]);
 				args->args[args->count].is_imm = true;
+			}
+			if(isalpha(**line)){
+				res = get_identifier(line, &args->args[args->count]);
 			}
 			if(**line == '\'') {
 				res = get_string(line, &args->args[args->count]);
@@ -407,9 +411,8 @@ tokens_out_t parse_file(arena_t* arena, FILE* file) {
 		sv_print(tokens_out.tokens[i].opcode);
 		printf(" Args: %d: ", tokens_out.tokens[i].args.count);
 		for(int j=0;j<tokens_out.tokens[i].args.count; j++) {
-			printf("%d: ", j);
 			sv_print(tokens_out.tokens[i].args.args[j].sv);
-			printf(" ");
+			printf(", ");
 		}
 		printf("\n");
 	}

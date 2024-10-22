@@ -813,7 +813,7 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
         reg_DE = cpu8080_POP();
         break;
     case 0xE1: //POP H
-        reg_DE = cpu8080_POP();
+        reg_HL = cpu8080_POP();
         break;
     case 0xF1: //POP PSW
         reg_PSW = cpu8080_POP();
@@ -1096,7 +1096,7 @@ static inline void cpu8080_init(void) {
 }
 
 static inline void print_binary8(cpu8080_byte_t v) {
-    for(int i = 8; i >= 0; i--) {
+    for(int i = 7; i >= 0; i--) {
         printf("%d", (v >> i) & 1);
     }
 }
