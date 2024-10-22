@@ -63,6 +63,10 @@ static unsigned char get_opcode_arg_bits(arg_bits_t* arr, int size, string_view_
 typedef struct {
 	string_view_t label;
 	unsigned short addr;
+	unsigned short* queued;
+	int queued_count;
+	int queued_cap;
+	bool set;
 } label_t;
 
 typedef struct {
@@ -78,14 +82,14 @@ typedef struct {
 } assembler_t;
 
 
-static unsigned short find_label_addr(assembler_t* a, string_view_t label) {
-	for(int i=0;i<a->label_count;i++) {
-		if(sv_cmp(a->labels[i].label, label)) {
-			return a->labels[i].addr;
-		}
-	}
-	return 0;
-}
+//static unsigned short find_label_addr(assembler_t* a, string_view_t label) {
+//	for(int i=0;i<a->label_count;i++) {
+//		if(sv_cmp(a->labels[i].label, label)) {
+//			return a->labels[i].addr;
+//		}
+//	}
+//	return 0;
+//}
 static int find_label_index(assembler_t* a, string_view_t label) {
 	for(int i=0;i<a->label_count;i++) {
 		if(sv_cmp(a->labels[i].label, label)) {
@@ -94,17 +98,50 @@ static int find_label_index(assembler_t* a, string_view_t label) {
 	}
 	return -1;
 }
-static void add_label(assembler_t* a, string_view_t label, unsigned short addr) {
+static void push_label(assembler_t* a, string_view_t label, unsigned short addr, bool set) {
 	if(a->label_count >= a->label_cap) {
 		a->labels = arena_realloc(a->arena, a->labels, sizeof(label_t) * a->label_cap, sizeof(label_t) * a->label_cap * 2);
 		a->label_cap *= 2;
 	}
-	if(find_label_index(a, label) != -1) {
-		return; // Lable redefinition
-	}
 	a->labels[a->label_count].label = label;
 	a->labels[a->label_count].addr = addr;
+	a->labels[a->label_count].queued_cap = 1;
+	a->labels[a->label_count].queued_count = 0;
+	a->labels[a->label_count].queued = arena_alloc(a->arena, sizeof(unsigned short) * a->labels[a->label_count].queued_cap);
+	a->labels[a->label_count].set = set;
 	a->label_count++;
+}
+static void add_label(assembler_t* a, string_view_t label, unsigned short addr) {
+	if(label.str == NULL){ return; }
+	int index = find_label_index(a, label);
+	if(index != -1) {
+		if(a->labels[index].set){
+			return; // Lable redefinition
+		}
+		a->labels[index].addr = addr;
+		a->labels[index].set = true;
+		return;
+	}
+	push_label(a, label, addr, true);
+}
+
+static int queue_label_write(assembler_t* a, string_view_t label) {
+	if(label.str == NULL){ return 0; }
+	int index = find_label_index(a, label);
+	label_t* lab;
+	if(index == -1) {
+		push_label(a, label, a->curr_addr, false);
+		lab = &a->labels[a->label_count-1];
+	}else {
+		lab = &a->labels[index];
+	}
+	if(lab->queued_count >= lab->queued_cap) {
+		lab->queued = arena_realloc(a->arena, lab->queued, lab->queued_cap * sizeof(unsigned short), lab->queued_cap * sizeof(unsigned short) * 2);
+		lab->queued_cap *= 2;
+	}
+	lab->queued[lab->queued_count] = a->curr_addr;
+	lab->queued_count++;
+	return 0;
 }
 
 static inline void file_write_byte(assembler_t* a, unsigned char byte) {
@@ -114,6 +151,23 @@ static inline void file_write_byte(assembler_t* a, unsigned char byte) {
 static inline void file_write_short(assembler_t* a, unsigned short sh) {
 	file_write_byte(a, (sh >> 8) & 0xFF);
 	file_write_byte(a, sh & 0xFF);
+}
+static inline void file_overwrite_byte(assembler_t* a, unsigned short addr, unsigned char byte) {
+	fseek(a->fout, addr, SEEK_SET);
+	fputc(byte, a->fout);
+}
+static inline void file_overwrite_short(assembler_t* a, unsigned short addr, unsigned short sh) {
+	fseek(a->fout, addr, SEEK_SET);
+	fputc((sh >> 8) & 0xFF, a->fout);
+	fputc(sh & 0xFF, a->fout);
+}
+
+static void write_queued_labels(assembler_t* a) {
+	for(int i = 0; i < a->label_count; i++) {
+		for(int j = 0; j < a->labels[i].queued_count; j++) {
+			file_overwrite_short(a, a->labels[i].queued[j], a->labels[i].addr);
+		}
+	}
 }
 
 static void write_token(assembler_t* a, opcode_token_t* token) {
@@ -161,7 +215,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 						file_write_short(a, args[i].sv.str[j]);
 					}
 				} else {
-					file_write_short(a, find_label_addr(a, args[i].sv));
+					file_write_short(a, queue_label_write(a, args[i].sv));
 				}
 			}
 		}
@@ -171,7 +225,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 		if(args[0].is_imm) {
 			count = parse_immediate(args[0].sv.str);
 		}else {
-			count = find_label_addr(a, args[0].sv);
+			// Unexpected
 		}
 		for(int i = 0; i < count; i++) {
 			file_write_byte(a, 0);
@@ -182,7 +236,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 		if(args[0].is_imm) {
 			count = parse_immediate(args[0].sv.str);
 		}else {
-			count = find_label_addr(a, args[0].sv);
+			// Unexpected
 		}
 		for(int i = a->curr_addr; i < count; i++) {
 			file_write_byte(a, 0);
@@ -235,13 +289,13 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 				if(args[0].is_imm) {
 					arg_imm = parse_immediate(args[0].sv.str);
 				}else {
-					arg_imm = find_label_addr(a, args[0].sv);
+					arg_imm = queue_label_write(a, args[0].sv);
 				}
 			}else if(arg_ep_cnt == 1) {
 				if(args[1].is_imm) {
 					arg_imm = parse_immediate(args[1].sv.str);
 				}else {
-					arg_imm = find_label_addr(a, args[1].sv);
+					arg_imm = queue_label_write(a, args[1].sv);
 				}
 			}
 
@@ -294,11 +348,13 @@ void assemble(char* file_name_in, char* file_name_out) {
 	a.labels = arena_alloc(a.arena, sizeof(label_t) * a.label_cap);
 	a.force_end = false;
 	fopen_s(&a.fin, file_name_in, "r");
-	fopen_s(&a.fout, file_name_out, "w");
-
+	fopen_s(&a.fout, file_name_out, "wb");
+	
 	a.tokens = parse_file(a.arena, a.fin);
 
 	write_tokens(&a);
+
+	write_queued_labels(&a);
 
 	arena_free(a.arena);
 

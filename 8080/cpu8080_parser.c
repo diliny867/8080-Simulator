@@ -21,11 +21,11 @@ static char* fgetline(arena_t* a, char** line, size_t* len, FILE* file) {
 	*len = 0;
 	int c;
 	while((c = fgetc(file)) != EOF && c != '\n') {
-		*(*line + (*len)++) = c;
 		if(*len >= cap) {
 			*line = arena_realloc(a, *line, cap, cap * 2);
 			cap *= 2;
 		}
+		*(*line + (*len)++) = c;
 	}
 	*(*line + *len) = '\0';
 	if(*len == 0 && c == EOF) {
@@ -255,7 +255,7 @@ static parse_res_e_t get_identifier(char** line, arg_v_t* arg) {
 	if(stop_on_char(**line)) {
 		return PARSE_STOP;
 	}
-	if(!isidentch(**line)) {
+	if(!isalpha(**line) && **line != '_') {
 		return PARSE_UNEXPECTED;
 	}
 	arg->sv.str = *line;
