@@ -57,7 +57,19 @@ bool sv_cmp(string_view_t sv1, string_view_t sv2) {
 	}
 	return true;
 }
+bool sv_str_cmp(string_view_t s1, char* s2) {
+	int i;
+	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
+		if(tolower(s1.str[i]) != tolower(s2[i])) {
+			return false;
+		}
+	}
+	return i == s1.len && s2[i] == '\0';
+}
 
+static bool isidentch(char c) {
+	return isalnum(c) || c == '_';
+}
 static inline bool stop_on_char(char c) {
 	return c == '\0' || c == ';';
 }
@@ -76,9 +88,9 @@ static parse_res_e_t get_label(char** line, char** label, char* label_len) {
 	*label_len = 0;
 	skip_whitespace(line);
 	while(!stop_on_char(**line)) {
-		if(isalpha(**line)){
+		if(isalpha(**line) || **line == '_'){
 			*label = *line;
-			while(isalnum(**line)){
+			while(isidentch(**line)){
 				(*line)++;
 			}
 			while(isspace(**line)) {
@@ -113,9 +125,9 @@ static parse_res_e_t get_opcode(char** line, char** op_ptr, char* op_len) {
 	*op_len = 0;
 	skip_whitespace(line);
 	while(!stop_on_char(**line)) {
-		if(isalpha(**line)){
+		if(isalpha(**line) || **line == '_'){
 			*op_ptr = *line;
-			while(isalpha(**line)){
+			while(isidentch(**line)){
 				(*line)++;
 			}
 			*op_len = *line - *op_ptr;
@@ -247,9 +259,6 @@ static parse_res_e_t get_immediate(char** line, arg_v_t* arg) {
 	return PARSE_UNEXPECTED;
 }
 
-static bool isidentch(char c) {
-	return isalnum(c) || c == '_';
-}
 static parse_res_e_t get_identifier(char** line, arg_v_t* arg) {
 	skip_whitespace(line);
 	if(stop_on_char(**line)) {
@@ -295,13 +304,13 @@ static parse_res_e_t get_opcode_args(char** line, args_t* args) {
 	parse_res_e_t res;
 	skip_whitespace(line);
 	while(!stop_on_char(**line)) {
-		if(isalpha(**line) || isdigit(**line) || **line == '\''){
+		if(isalpha(**line) || isdigit(**line) || **line == '\'' || **line == '_'){
 			if(args->count >= arg_cap) {
 				arg_cap *= 2;
 				args->args = realloc(args->args, sizeof(arg_v_t) * arg_cap);
 			}
 			args->args[args->count].is_imm = false;
-#ifdef PARSE_AS_LEGACY_NUMBERS
+#ifdef  PARSE_AS_LEGACY_NUMBERS
 			if(isxdigit(**line)) {
 #else
 			if(isdigit(**line)) {
@@ -309,7 +318,7 @@ static parse_res_e_t get_opcode_args(char** line, args_t* args) {
 				res = get_immediate(line, &args->args[args->count]);
 				args->args[args->count].is_imm = true;
 			}
-			if(isalpha(**line)){
+			if(isalpha(**line) || **line == '_'){
 				res = get_identifier(line, &args->args[args->count]);
 			}
 			if(**line == '\'') {

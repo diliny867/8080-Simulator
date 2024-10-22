@@ -1095,17 +1095,6 @@ static inline void cpu8080_init(void) {
 #endif
 }
 
-static inline void print_binary8(cpu8080_byte_t v) {
-    for(int i = 7; i >= 0; i--) {
-        printf("%d", (v >> i) & 1);
-    }
-}
-static inline void print_binary16(cpu8080_short_t v) {
-    for(int i = 15; i >= 0; i--) {
-        printf("%d", (v >> i) & 1);
-    }
-}
-
 static inline void cpu8080_print_reg(char* name, cpu8080_short_t v) {
     printf("Register %s: 0x%02hhX_%02hhX   ", name, v >> 8, v & 0xFF);
     printf("0b");

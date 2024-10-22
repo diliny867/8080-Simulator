@@ -6,6 +6,17 @@
 #include "stdio.h"
 
 
+void print_binary8(cpu8080_byte_t v) {
+	for(int i = 7; i >= 0; i--) {
+		printf("%d", (v >> i) & 1);
+	}
+}
+void print_binary16(cpu8080_short_t v) {
+	for(int i = 15; i >= 0; i--) {
+		printf("%d", (v >> i) & 1);
+	}
+}
+
 void print_opcode_name(char* opcode) {
 	while(true) {
 		putchar(*opcode);
@@ -18,6 +29,8 @@ void print_opcode_name(char* opcode) {
 
 static void print_instr_no_args(cpu8080_byte_t instr, cpu8080_short_t addr) {
 	printf("\t 0x%04hX:  ", addr);
+	print_binary8(instr);
+	printf(": ");
 	//printf("0x%04hX:  ", addr);
 	print_opcode_name(opcodes_ordered_names_full[instr]);
 }

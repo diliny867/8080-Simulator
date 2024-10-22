@@ -1,8 +1,8 @@
 #include "cpu8080_assembler.h"
 
 
-#include "cpu8080_parser.h"
 #include "cpu8080_tables.h"
+#include "cpu8080_asmprepass.h"
 
 #include "ctype.h"
 #include "string.h"
@@ -28,16 +28,6 @@ static int clamp(int val, int min, int max) {
 	return val;
 }
 
-static bool sv_str_cmp(string_view_t s1, char* s2) {
-	int i;
-	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
-		if(tolower(s1.str[i]) != tolower(s2[i])) {
-			return false;
-		}
-	}
-	return i == s1.len && s2[i] == '\0';
-}
-
 static int c_bit_count(unsigned char c) {
 	return (c & 1) + ((c & 2) >> 1) + ((c & 4) >> 2) + ((c & 8) >> 3) + ((c & 16) >> 4) + ((c & 32) >> 5) + ((c & 64) >> 6) + ((c & 128) >> 7);
 }
@@ -59,27 +49,6 @@ static unsigned char get_opcode_arg_bits(arg_bits_t* arr, int size, string_view_
 	}
 	return 0;
 }
-
-typedef struct {
-	string_view_t label;
-	unsigned short addr;
-	unsigned short* queued;
-	int queued_count;
-	int queued_cap;
-	bool set;
-} label_t;
-
-typedef struct {
-	FILE* fout;
-	FILE* fin;
-	arena_t* arena;
-	tokens_out_t tokens;
-	unsigned short curr_addr;
-	label_t* labels;
-	int label_count;
-	int label_cap;
-	bool force_end;
-} assembler_t;
 
 
 //static unsigned short find_label_addr(assembler_t* a, string_view_t label) {
@@ -268,7 +237,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 					opcode |= get_opcode_arg_bits(arg_dbl_bits , arr_bits_size, args[0].sv, arg_at);
 				}
 			} else if(arg_bit_count == 3) {
-				if(!args[1].is_imm) {
+				if(!args[0].is_imm) {
 					arr_bits_size = sizeof(arg_tpl_bits)/sizeof(arg_tpl_bits[0]);
 					opcode |= get_opcode_arg_bits(arg_tpl_bits, arr_bits_size, args[0].sv, arg_at);
 				}
@@ -352,6 +321,8 @@ void assemble(char* file_name_in, char* file_name_out) {
 	fopen_s(&a.fout, file_name_out, "wb");
 	
 	a.tokens = parse_file(a.arena, a.fin);
+
+	prepass(&a);
 
 	write_tokens(&a);
 

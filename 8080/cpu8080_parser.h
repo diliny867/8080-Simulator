@@ -36,6 +36,7 @@ typedef struct {
 
 void sv_print(string_view_t sv);
 bool sv_cmp(string_view_t sv1, string_view_t sv2);
+bool sv_str_cmp(string_view_t s1, char* s2);
 
 int parse_immediate(char* line);
 

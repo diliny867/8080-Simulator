@@ -36,6 +36,9 @@
     <ClCompile Include="arena.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu8080_asmprepass.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpu8080_emulator.h">
@@ -57,6 +60,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arena.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu8080_asmprepass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
