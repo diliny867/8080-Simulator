@@ -18,6 +18,26 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\arena.h" />
+    <ClInclude Include="src\cpu8080_asmprepass.h" />
+    <ClInclude Include="src\cpu8080_assembler.h" />
+    <ClInclude Include="src\cpu8080_common.h" />
+    <ClInclude Include="src\cpu8080_disassembler.h" />
+    <ClInclude Include="src\cpu8080_emulator.h" />
+    <ClInclude Include="src\cpu8080_parser.h" />
+    <ClInclude Include="src\cpu8080_tables.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="examples\main.c" />
+    <ClCompile Include="include\arena.c" />
+    <ClCompile Include="src\cpu8080_asmprepass.c" />
+    <ClCompile Include="src\cpu8080_assembler.c" />
+    <ClCompile Include="src\cpu8080_disassembler.c" />
+    <ClCompile Include="src\cpu8080_emulator.c" />
+    <ClCompile Include="src\cpu8080_parser.c" />
+    <ClCompile Include="src\cpu8080_tables.c" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -130,26 +150,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="arena.c" />
-    <ClCompile Include="cpu8080_asmprepass.c" />
-    <ClCompile Include="cpu8080_assembler.c" />
-    <ClCompile Include="cpu8080_disassembler.c" />
-    <ClCompile Include="cpu8080_emulator.c" />
-    <ClCompile Include="cpu8080_parser.c" />
-    <ClCompile Include="cpu8080_tables.c" />
-    <ClCompile Include="main.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="arena.h" />
-    <ClInclude Include="cpu8080_asmprepass.h" />
-    <ClInclude Include="cpu8080_common.h" />
-    <ClInclude Include="cpu8080_emulator.h" />
-    <ClInclude Include="cpu8080_assembler.h" />
-    <ClInclude Include="cpu8080_disassembler.h" />
-    <ClInclude Include="cpu8080_parser.h" />
-    <ClInclude Include="cpu8080_tables.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

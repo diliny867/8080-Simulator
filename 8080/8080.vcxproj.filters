@@ -15,55 +15,55 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_emulator.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_disassembler.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_assembler.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_parser.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_tables.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="arena.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu8080_asmprepass.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="src\cpu8080_tables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_asmprepass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_assembler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_disassembler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_emulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cpu8080_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\arena.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cpu8080_emulator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_assembler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_parser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_tables.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_disassembler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="arena.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpu8080_asmprepass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="src\cpu8080_assembler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_disassembler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_emulator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_parser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_tables.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_asmprepass.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\arena.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

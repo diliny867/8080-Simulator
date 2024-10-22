@@ -3,17 +3,17 @@
 #include "stdio.h"
 
 
-#include "cpu8080_assembler.h"
-#include "cpu8080_emulator.h"
-#include "cpu8080_disassembler.h"
+#include "../src/cpu8080_assembler.h"
+#include "../src/cpu8080_emulator.h"
+#include "../src/cpu8080_disassembler.h"
 
 
 int main(int argc, char** argv) {
-	char* file_in = "asm8080.asm";
-	char* file_out = "asm8080.bin";
+	char* file_in = "examples/asm8080.asm";
+	char* file_out = "examples/asm8080.bin";
 	assemble(file_in, file_out);
 
-	program_t pr = load_program("asm8080.bin");
+	program_t pr = load_program("examples/asm8080.bin");
 	printf("Loaded program of %d bytes:\n", pr.size);
 	print_program(&pr, 1);
 	printf("\n");
