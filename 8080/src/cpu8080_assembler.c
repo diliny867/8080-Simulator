@@ -93,7 +93,7 @@ static void add_label(assembler_t* a, string_view_t label, unsigned short addr) 
 	push_label(a, label, addr, true);
 }
 
-static int queue_or_get_label(assembler_t* a, string_view_t label) {
+static unsigned short queue_or_get_label(assembler_t* a, string_view_t label) {
 	int index = find_label_index(a, label);
 	label_t* lab;
 	if(index == -1) {
@@ -338,7 +338,7 @@ void assemble(char* file_name_in, char* file_name_out) {
 program_t load_program(char* file_name_in) {
 	program_t program;
 	FILE* file;
-	fopen_s(&file, file_name_in, "r");
+	fopen_s(&file, file_name_in, "rb");
 	program.size = fread(program.data, sizeof(char), sizeof(program.data), file);
 	memset(program.data + program.size, 0, DATA_MAX_CNT - program.size);
 	program.start = 0;
