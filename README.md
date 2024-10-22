@@ -4,6 +4,5 @@
 
 ## Parser: working
 ### Left to implement
-- Fix labels
-- `EQU`, `SET`, `IF`, `ENDIF`, `MACRO`, `ENDM` special prepass instructions
+- `MACRO`, `ENDM` special prepass instructions
 - Maybe something I dont know about
