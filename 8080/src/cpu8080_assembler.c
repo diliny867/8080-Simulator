@@ -9,8 +9,6 @@
 #include "stdlib.h"
 
 
-//#define AS_ASCII
-
 
 static void print_char_bin(unsigned char c) {
 	for(int i=7;i>=0;i--) {
@@ -29,7 +27,7 @@ static int clamp(int val, int min, int max) {
 }
 
 static int c_bit_count(unsigned char c) {
-	return (c & 1) + ((c & 2) >> 1) + ((c & 4) >> 2) + ((c & 8) >> 3) + ((c & 16) >> 4) + ((c & 32) >> 5) + ((c & 64) >> 6) + ((c & 128) >> 7);
+	return (c & 1) + ((c >> 1) & 1) + ((c >> 2) & 1) + ((c >> 3) & 1) + ((c >> 4) & 1) + ((c >> 5) & 1) + ((c >> 6) & 1) + ((c >> 7) & 1);
 }
 
 static int c_right_most_bit_at(unsigned char c) {
@@ -43,7 +41,7 @@ static int c_right_most_bit_at(unsigned char c) {
 
 static unsigned char get_opcode_arg_bits(arg_bits_t* arr, int size, string_view_t sv, int shift) {
 	for(int i=0; i<size; i++) { 
-		if(sv_str_cmp(sv, arr[i].arg)) {
+		if(sv_str_cmp_weak(sv, arr[i].arg)) {
 			return arr[i].bits << shift;
 		}
 	}
@@ -152,7 +150,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 	string_view_t tok_opcode = token->opcode;
 
 	//Pseudo instructions
-	if(sv_str_cmp(tok_opcode, "DB")) {
+	if(sv_str_cmp_weak(tok_opcode, "DB")) {
 		for(int i = 0; i < token->args.count; i++){
 			int arg_len = args[i].sv.len;
 			if(args[i].is_imm) {
@@ -171,7 +169,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			}
 		}
 		return;
-	}else if(sv_str_cmp(tok_opcode, "DW")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "DW")) {
 		for(int i = 0; i < token->args.count; i++){
 			int arg_len = args[i].sv.len;
 			if(args[i].is_imm) {
@@ -190,7 +188,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			}
 		}
 		return;
-	}else if(sv_str_cmp(tok_opcode, "DS")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "DS")) {
 		int count;
 		if(args[0].is_imm) {
 			count = parse_immediate(args[0].sv.str);
@@ -201,7 +199,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			file_write_byte(a, 0);
 		}
 		return;
-	}else if(sv_str_cmp(tok_opcode, "ORG")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "ORG")) {
 		int count;
 		if(args[0].is_imm) {
 			count = parse_immediate(args[0].sv.str);
@@ -212,7 +210,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 			file_write_byte(a, 0);
 		}
 		return;
-	}else if(sv_str_cmp(tok_opcode, "END")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "END")) {
 		a->force_end = true;
 		return;
 	}
@@ -221,7 +219,7 @@ static void write_token(assembler_t* a, opcode_token_t* token) {
 	int b_size = sizeof(opcodes_base)/sizeof(opcodes_base[0]);
 	for(int i=0;i<b_size;i++) {
 		opcode_base_t obt = opcodes_base[i];
-		if(sv_str_cmp(tok_opcode, obt.name)) {
+		if(sv_str_cmp_weak(tok_opcode, obt.name)) {
 			unsigned char opcode = obt.b_code;
 #ifdef DEBUG_PRINT
 			printf("opcode found: 0b");

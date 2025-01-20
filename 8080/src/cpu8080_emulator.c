@@ -1036,7 +1036,7 @@ static inline void cpu8080_exec_instr(cpu8080_byte_t instr) {
 #ifdef CPU8080_INSTANT_INSTRUCTIONS
     clock += (opcodes_ordered_data[instr].dur >> (4 * long_exec)) & 0xFF;
 #else
-    clock_target = clock + (opcodes_ordered_data[instr].dur >> (4 * long_exec)) & 0xFF;
+    clock_target = clock + ((opcodes_ordered_data[instr].dur >> (4 * long_exec)) & 0xFF);
     clock++;
 #endif
 }

@@ -39,6 +39,12 @@
     <ClInclude Include="include\arena.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\cpu8080_preprocessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\file_mm_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\cpu8080_assembler.c">
@@ -63,6 +69,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\arena.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_preprocessor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu8080_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

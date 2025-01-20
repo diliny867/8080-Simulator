@@ -16,7 +16,7 @@ typedef struct {
 	int substitute_cap;
 	bool* if_list;
 	int if_lis_count;
-	int if_lis_cap;
+	int if_list_cap;
 } prepass_state_t;
 
 static string_view_t* find_substitute(prepass_state_t* ps, string_view_t from) {
@@ -81,7 +81,7 @@ static bool prepass_handle_at(prepass_state_t* ps, int index) {
 	arg_v_t* args = token->args.args;
 	string_view_t tok_opcode = token->opcode;
 	if(ps->if_lis_count) {
-		if(sv_str_cmp(tok_opcode, "ENDIF")) {
+		if(sv_str_cmp_weak(tok_opcode, "ENDIF")) {
 			ps->if_lis_count--;
 			return true;
 		}else {
@@ -89,16 +89,16 @@ static bool prepass_handle_at(prepass_state_t* ps, int index) {
 		}
 	}
 
-	if(sv_str_cmp(args[0].sv, "EQU")) {
+	if(sv_str_cmp_weak(args[0].sv, "EQU")) {
 		add_substitute(ps, tok_opcode, args[1].sv, true);
 		return true;
-	}else if(sv_str_cmp(args[0].sv, "SET")) {
+	}else if(sv_str_cmp_weak(args[0].sv, "SET")) {
 		add_substitute(ps, tok_opcode, args[1].sv, false);
 		return true;
-	}else if(sv_str_cmp(tok_opcode, "IF")) {
-		if(ps->if_lis_count >= ps->if_lis_cap) {
-			ps->if_list = arena_realloc(ps->a->arena, ps->if_list, ps->if_lis_cap * sizeof(bool), ps->if_lis_cap * sizeof(bool) * 2);
-			ps->if_lis_cap *= 2;
+	}else if(sv_str_cmp_weak(tok_opcode, "IF")) {
+		if(ps->if_lis_count >= ps->if_list_cap) {
+			ps->if_list = arena_realloc(ps->a->arena, ps->if_list, ps->if_list_cap * sizeof(bool), ps->if_list_cap * sizeof(bool) * 2);
+			ps->if_list_cap *= 2;
 		}
 		if(parse_immediate(args[0].sv.str)) {
 			ps->if_list[ps->if_lis_count] = false;
@@ -107,13 +107,13 @@ static bool prepass_handle_at(prepass_state_t* ps, int index) {
 		}
 		ps->if_lis_count++;
 		return true;
-	}else if(sv_str_cmp(tok_opcode, "ENDIF")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "ENDIF")) {
 		// Unexpected
 		return true;
-	}else if(sv_str_cmp(tok_opcode, "MACRO")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "MACRO")) {
 
 		return true;
-	}else if(sv_str_cmp(tok_opcode, "ENDM")) {
+	}else if(sv_str_cmp_weak(tok_opcode, "ENDM")) {
 
 		return true;
 	}
@@ -136,9 +136,9 @@ void prepass(assembler_t* a) {
 	ps.substitute_cap = 1;
 	ps.substitute_count = 0;
 	ps.substitutes = arena_alloc(ps.a->arena, ps.substitute_cap * sizeof(substitute_t));
-	ps.if_lis_cap = 16;
+	ps.if_list_cap = 16;
 	ps.if_lis_count = 0;
-	ps.if_list = arena_alloc(ps.a->arena, ps.if_lis_cap * sizeof(bool));
+	ps.if_list = arena_alloc(ps.a->arena, ps.if_list_cap * sizeof(bool));
 	tokens_out_t* tokens = &ps.a->tokens;
 	for(int i = 0; i < tokens->count && !ps.a->force_end;) {
 		if(prepass_handle_at(&ps, i)) {

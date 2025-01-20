@@ -38,35 +38,6 @@ static char* fgetline(arena_t* a, char** line, size_t* len, FILE* file) {
 }
 
 
-void sv_print(string_view_t sv) {
-	for(int i = 0; i < sv.len; i++) {
-		putchar(sv.str[i]);
-	}
-}
-bool sv_cmp(string_view_t sv1, string_view_t sv2) {
-	if(sv1.len != sv2.len) {
-		return false;
-	}
-	if(sv1.len == 0) {
-		return sv1.str == sv2.str;
-	}
-	for(int i=0;i<sv1.len;i++) {
-		if(sv1.str[i] != sv2.str[i]) {
-			return false;
-		}
-	}
-	return true;
-}
-bool sv_str_cmp(string_view_t s1, char* s2) {
-	int i;
-	for(i = 0; i < s1.len && s2[i] != '\0'; i++) {
-		if(tolower(s1.str[i]) != tolower(s2[i])) {
-			return false;
-		}
-	}
-	return i == s1.len && s2[i] == '\0';
-}
-
 static bool isidentch(char c) {
 	return isalnum(c) || c == '_';
 }
@@ -80,7 +51,7 @@ static inline void skip_whitespace(char** line) {
 	}
 }
 
-static parse_res_e_t get_label(char** line, char** label, char* label_len) {
+static parse_res_e_t get_label(char** line, char** label, unsigned char* label_len) {
 #ifdef DEBUG_PRINT
 	printf("Parsing label: ");
 #endif
@@ -117,7 +88,7 @@ static parse_res_e_t get_label(char** line, char** label, char* label_len) {
 	return PARSE_STOP;
 }
 
-static parse_res_e_t get_opcode(char** line, char** op_ptr, char* op_len) {
+static parse_res_e_t get_opcode(char** line, char** op_ptr, unsigned char* op_len) {
 #ifdef DEBUG_PRINT
 	printf("Parsing opcode: ");
 #endif
@@ -317,11 +288,9 @@ static parse_res_e_t get_opcode_args(char** line, args_t* args) {
 #endif
 				res = get_immediate(line, &args->args[args->count]);
 				args->args[args->count].is_imm = true;
-			}
-			if(isalpha(**line) || **line == '_'){
+			}else if(isalpha(**line) || **line == '_'){
 				res = get_identifier(line, &args->args[args->count]);
-			}
-			if(**line == '\'') {
+			}else { //if(**line == '\'') {
 				res = get_string(line, &args->args[args->count]);
 			}
 			args->count++;
@@ -369,7 +338,7 @@ static parse_res_e_t next_token(char* line, opcode_token_t* token) {
 #ifdef DEBUG_PRINT
 	printf("\n");
 #endif
-	if(res != PARSE_CONTINUE) {
+	if(res != PARSE_STOP) {
 		return res;
 	}
 

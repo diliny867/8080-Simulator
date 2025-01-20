@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\arena.h" />
+    <ClInclude Include="include\file_mm_utils.h" />
     <ClInclude Include="src\cpu8080_asmprepass.h" />
     <ClInclude Include="src\cpu8080_assembler.h" />
     <ClInclude Include="src\cpu8080_common.h" />
     <ClInclude Include="src\cpu8080_disassembler.h" />
     <ClInclude Include="src\cpu8080_emulator.h" />
     <ClInclude Include="src\cpu8080_parser.h" />
+    <ClInclude Include="src\cpu8080_preprocessor.h" />
     <ClInclude Include="src\cpu8080_tables.h" />
   </ItemGroup>
   <ItemGroup>
@@ -33,9 +35,11 @@
     <ClCompile Include="include\arena.c" />
     <ClCompile Include="src\cpu8080_asmprepass.c" />
     <ClCompile Include="src\cpu8080_assembler.c" />
+    <ClCompile Include="src\cpu8080_common.c" />
     <ClCompile Include="src\cpu8080_disassembler.c" />
     <ClCompile Include="src\cpu8080_emulator.c" />
     <ClCompile Include="src\cpu8080_parser.c" />
+    <ClCompile Include="src\cpu8080_preprocessor.c" />
     <ClCompile Include="src\cpu8080_tables.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
